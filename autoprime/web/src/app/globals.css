@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  color-scheme: light dark;
+}
+
+body {
+  @apply bg-gradient-to-br from-white to-graphite-100 dark:from-graphite-950 dark:to-graphite-900 text-graphite-900 dark:text-white;
+  min-height: 100vh;
+}
+
+::selection {
+  @apply bg-primary-500/30;
+}
+
+* {
+  scrollbar-width: thin;
+}

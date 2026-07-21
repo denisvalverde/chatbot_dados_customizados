@@ -122,3 +122,15 @@ cython_debug/
 
 # JetBrains IDEs (PyCharm, etc)
 .idea/
+
+# ---------------------------------------------------------------------------
+# AutoPrime (Node/TypeScript monorepo)
+# ---------------------------------------------------------------------------
+node_modules/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+.DS_Store
+npm-debug.log*
+
