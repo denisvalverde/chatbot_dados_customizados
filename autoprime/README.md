@@ -124,8 +124,17 @@ DATABASE_URL=postgresql://autoprime:autoprime@localhost:5432/autoprime_test?sche
   clientes/veículos, catálogo de serviços, agenda, ordens de serviço, financeiro,
   estoque, RH e notificações — com migrations versionadas.
 
+## Publicando externamente
+
+Quer colocar o AutoPrime no ar com uma URL pública (não só rodando na sua
+máquina)? Siga [`docs/DEPLOY_RAILWAY.md`](./docs/DEPLOY_RAILWAY.md) — passo a
+passo completo usando Railway (Postgres + Redis + backend + web, HTTPS
+automático). Os arquivos `railway.json` de `backend/` e `web/` já deixam o
+deploy praticamente "apontar e clicar".
+
 ## Documentação adicional
 
 - [`docs/MANUAL_ADMINISTRADOR.md`](./docs/MANUAL_ADMINISTRADOR.md)
 - [`docs/MANUAL_USUARIO.md`](./docs/MANUAL_USUARIO.md)
+- [`docs/DEPLOY_RAILWAY.md`](./docs/DEPLOY_RAILWAY.md)
 - Swagger/OpenAPI interativo: `GET /api/docs` no backend em execução.
