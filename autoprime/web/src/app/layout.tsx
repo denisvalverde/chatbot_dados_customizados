@@ -1,12 +1,30 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
+import { ServiceWorkerRegistration } from './sw-registration';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
   title: 'AutoPrime — Gestão de Lava Rápido e Estética Automotiva',
   description: 'Plataforma completa de gestão para lava-rápido, estética automotiva e detail.',
+  manifest: '/manifest.json',
+  icons: {
+    icon: '/icons/favicon-32.png',
+    apple: '/icons/apple-touch-icon.png',
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'AutoPrime',
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: '#2f7cf6',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
 };
 
 const THEME_SCRIPT = `
@@ -26,7 +44,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased">
+        <ServiceWorkerRegistration />
+        {children}
+      </body>
     </html>
   );
 }
