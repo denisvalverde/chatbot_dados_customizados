@@ -1,6 +1,10 @@
 FROM node:22-alpine AS base
 WORKDIR /app
 RUN corepack disable
+# O Prisma (query/schema engine) precisa do libssl para rodar — Alpine não
+# vem com ele por padrão. Sem isso, o engine falha ao iniciar com um erro
+# de linker que não é JSON válido, quebrando `prisma generate`/`migrate deploy`.
+RUN apk add --no-cache openssl
 
 FROM base AS deps
 COPY package.json package-lock.json* ./
