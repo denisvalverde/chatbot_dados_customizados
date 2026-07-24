@@ -48,7 +48,8 @@ export function Sidebar() {
   return (
     <aside className="hidden lg:flex w-64 flex-col shrink-0 border-r border-black/5 dark:border-white/10 bg-white/70 dark:bg-graphite-900/70 backdrop-blur-xl px-4 py-6">
       <div className="flex items-center gap-2 px-2 mb-8">
-        <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary-400 to-primary-700 shadow-lg shadow-primary-500/30" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/icons/icon-192.png" alt="AutoPrime" className="h-8 w-8 rounded-lg shadow-lg shadow-primary-500/30" />
         <span className="text-lg font-semibold tracking-tight text-graphite-900 dark:text-white">
           AutoPrime
         </span>

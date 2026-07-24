@@ -52,7 +52,12 @@ export default function LoginPage() {
 
       <Card className="w-full max-w-md">
         <div className="flex flex-col items-center mb-6">
-          <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary-400 to-primary-700 shadow-lg shadow-primary-500/30 mb-3" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/icons/icon-192.png"
+            alt="AutoPrime"
+            className="h-14 w-14 rounded-2xl shadow-lg shadow-primary-500/30 mb-3"
+          />
           <h1 className="text-xl font-semibold">AutoPrime</h1>
           <p className="text-sm text-graphite-500 dark:text-white/50">
             Gestão premium de lava-rápido e estética automotiva
