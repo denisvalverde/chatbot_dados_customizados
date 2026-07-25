@@ -2,11 +2,12 @@ import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { ServiceWorkerRegistration } from './sw-registration';
+import { ToastProvider } from '@/components/ui/Toast';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
-  title: 'AutoPrime — Gestão de Lava Rápido e Estética Automotiva',
+  title: 'AP Auto Prime — Gestão de Lava Rápido e Estética Automotiva',
   description: 'Plataforma completa de gestão para lava-rápido, estética automotiva e detail.',
   manifest: '/manifest.json',
   icons: {
@@ -16,7 +17,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'AutoPrime',
+    title: 'AP Auto Prime',
   },
 };
 
@@ -46,7 +47,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="font-sans antialiased">
         <ServiceWorkerRegistration />
-        {children}
+        <ToastProvider>{children}</ToastProvider>
       </body>
     </html>
   );

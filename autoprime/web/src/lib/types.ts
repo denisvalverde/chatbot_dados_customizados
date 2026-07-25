@@ -68,7 +68,7 @@ export interface AppointmentRecord {
   endAt: string;
   status: string;
   notes?: string;
-  client: { user: { name: string } };
+  client: { id: string; user: { name: string } };
   vehicle: { brand: string; model: string; plate: string };
   services: { service: { name: string } }[];
 }

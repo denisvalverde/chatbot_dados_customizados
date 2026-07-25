@@ -88,6 +88,30 @@ export function zonedLocalInputToIso(
   return new Date(guessUtc.getTime() + offsetMs).toISOString();
 }
 
+/**
+ * Retorna o início e o fim do dia de HOJE no fuso da EMPRESA, como instantes
+ * absolutos (ISO UTC) — usado para consultas de "agenda de hoje" que não
+ * podem depender do fuso do navegador de quem está olhando o painel.
+ */
+export function todayRangeInZone(timeZone: string = DEFAULT_TIMEZONE): { from: string; to: string } {
+  const p = partsOf(new Date(), timeZone);
+  const dateStr = `${p.year}-${p.month}-${p.day}`;
+  return {
+    from: zonedLocalInputToIso(`${dateStr}T00:00`, timeZone),
+    to: zonedLocalInputToIso(`${dateStr}T23:59`, timeZone),
+  };
+}
+
+/** Formata apenas a hora (HH:mm) de um instante absoluto, no fuso da empresa. */
+export function formatTimeInZone(iso: string, timeZone: string = DEFAULT_TIMEZONE): string {
+  if (!iso) return '';
+  return new Intl.DateTimeFormat('pt-BR', {
+    timeZone,
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(iso));
+}
+
 /** Formata um instante absoluto para exibição, sempre no fuso da empresa. */
 export function formatDateTimeInZone(iso: string, timeZone: string = DEFAULT_TIMEZONE): string {
   if (!iso) return '';

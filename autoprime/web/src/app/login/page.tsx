@@ -45,22 +45,28 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
+    <div className="min-h-screen flex items-center justify-center px-4 py-10 pt-safe pb-safe">
       <div className="absolute inset-0 overflow-hidden -z-10">
         <div className="absolute -top-40 -left-40 h-96 w-96 rounded-full bg-primary-500/20 blur-3xl" />
         <div className="absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-success/10 blur-3xl" />
       </div>
 
       <Card className="w-full max-w-md">
+        <Link
+          href="/"
+          className="inline-block text-xs text-graphite-400 dark:text-white/40 hover:text-primary-500 mb-4"
+        >
+          ← Voltar ao site
+        </Link>
         <div className="flex flex-col items-center mb-6">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/icons/icon-192.png"
-            alt="AutoPrime"
+            alt="AP Auto Prime"
             className="h-14 w-14 rounded-2xl shadow-lg shadow-primary-500/30 mb-3"
           />
-          <h1 className="text-xl font-semibold">AutoPrime</h1>
-          <p className="text-sm text-graphite-500 dark:text-white/50">
+          <h1 className="text-xl font-semibold">AP Auto Prime</h1>
+          <p className="text-sm text-graphite-500 dark:text-white/50 text-center">
             Gestão premium de lava-rápido e estética automotiva
           </p>
         </div>
