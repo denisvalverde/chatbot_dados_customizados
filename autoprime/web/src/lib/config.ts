@@ -9,6 +9,9 @@ export const SITE = {
   whatsappNumber: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '',
   address: process.env.NEXT_PUBLIC_ADDRESS ?? '',
   businessHours: process.env.NEXT_PUBLIC_BUSINESS_HOURS ?? '',
+  // Empresa exibida na home pública enquanto não existe um domínio/rota por
+  // empresa — ver docs/audit.md e o backlog de multi-empresa.
+  defaultCompanySlug: process.env.NEXT_PUBLIC_DEFAULT_COMPANY_SLUG ?? 'autoprime-demo',
 };
 
 export function whatsappHref(message: string): string | null {

@@ -9,12 +9,27 @@ import { LoginResponse } from '@/lib/types';
 import { Button } from '@/components/ui/Button';
 import { Input, Label } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Skeleton } from '@/components/ui/Skeleton';
 
 interface CompanyInfo {
   id: string;
   name: string;
   slug: string;
 }
+
+interface BranchInfo {
+  id: string;
+  name: string;
+  slug: string;
+  city?: string;
+  state?: string;
+  address?: string;
+  number?: string;
+  district?: string;
+}
+
+type Step = 'company' | 'branch' | 'form';
 
 export default function CadastroPage() {
   return (
@@ -27,11 +42,19 @@ export default function CadastroPage() {
 function CadastroForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const companySlug = searchParams.get('empresa') ?? '';
+  const empresaParam = searchParams.get('empresa') ?? '';
+  const unidadeParam = searchParams.get('unidade') ?? '';
 
+  const [step, setStep] = useState<Step>('company');
+  const [bootstrapping, setBootstrapping] = useState(true);
+
+  const [companies, setCompanies] = useState<CompanyInfo[] | null>(null);
   const [company, setCompany] = useState<CompanyInfo | null>(null);
-  const [companyLoading, setCompanyLoading] = useState(true);
-  const [companyError, setCompanyError] = useState<string | null>(null);
+  const [companiesError, setCompaniesError] = useState(false);
+
+  const [branches, setBranches] = useState<BranchInfo[] | null>(null);
+  const [branch, setBranch] = useState<BranchInfo | null>(null);
+  const [branchesLoading, setBranchesLoading] = useState(false);
 
   const [form, setForm] = useState({
     name: '',
@@ -44,34 +67,77 @@ function CadastroForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Resolve o estado inicial: se ?empresa= veio na URL, tenta pré-selecionar
+  // (sem nunca mostrar erro técnico ao cliente — se for inválida, cai
+  // silenciosamente no seletor de empresa).
   useEffect(() => {
-    if (!companySlug) {
-      setCompanyLoading(false);
-      setCompanyError(
-        'Link de cadastro inválido. Peça ao lava-rápido o link correto (com "?empresa=" na URL).',
-      );
-      return;
+    let cancelled = false;
+
+    async function bootstrap() {
+      if (empresaParam) {
+        try {
+          const found = await api.get<CompanyInfo>(`/companies/by-slug/${empresaParam}`, false);
+          if (cancelled) return;
+          setCompany(found);
+          setStep('branch');
+          setBootstrapping(false);
+          return;
+        } catch {
+          // Link inválido/expirado — segue para o seletor normal, sem erro técnico.
+        }
+      }
+
+      try {
+        const list = await api.get<CompanyInfo[]>('/companies/public', false);
+        if (cancelled) return;
+        setCompanies(list);
+        if (list.length === 1) {
+          setCompany(list[0]);
+          setStep('branch');
+        }
+      } catch {
+        if (!cancelled) setCompaniesError(true);
+      } finally {
+        if (!cancelled) setBootstrapping(false);
+      }
     }
 
-    setCompanyLoading(true);
+    bootstrap();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Ao entrar na etapa de unidade, busca as unidades publicadas da empresa.
+  useEffect(() => {
+    if (step !== 'branch' || !company) return;
+
+    setBranchesLoading(true);
     api
-      .get<CompanyInfo>(`/companies/by-slug/${companySlug}`, false)
-      .then((res) => {
-        setCompany(res);
-        setCompanyError(null);
+      .get<BranchInfo[]>(`/companies/${company.slug}/branches`, false)
+      .then((list) => {
+        setBranches(list);
+        const preselected = unidadeParam ? list.find((b) => b.slug === unidadeParam) : undefined;
+        if (preselected) {
+          setBranch(preselected);
+          setStep('form');
+        } else if (list.length === 0) {
+          // Nenhuma unidade publicada ainda: segue sem escolher (opcional).
+          setStep('form');
+        }
       })
-      .catch(() => {
-        setCompanyError('Empresa não encontrada. Verifique o link de cadastro.');
-      })
-      .finally(() => setCompanyLoading(false));
-  }, [companySlug]);
+      .catch(() => setBranches([]))
+      .finally(() => setBranchesLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, company]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
 
     if (!company) {
-      setError('Não foi possível identificar a empresa deste cadastro.');
+      setError('Escolha uma empresa para continuar.');
       return;
     }
 
@@ -86,6 +152,7 @@ function CadastroForm() {
         '/auth/register',
         {
           companySlug: company.slug,
+          branchSlug: branch?.slug,
           name: form.name,
           email: form.email,
           password: form.password,
@@ -97,7 +164,7 @@ function CadastroForm() {
       );
 
       saveSession(res.accessToken, res.refreshToken, res.user);
-      router.push('/dashboard');
+      router.push('/agendar');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Erro ao criar conta. Tente novamente.');
     } finally {
@@ -130,22 +197,139 @@ function CadastroForm() {
           <p className="text-sm text-graphite-500 dark:text-white/50 text-center">
             {company
               ? `Cadastre-se para agendar seus serviços em ${company.name}`
-              : 'Cadastre-se para agendar seus serviços no AutoPrime'}
+              : 'Escolha o lava-rápido onde você quer se cadastrar'}
           </p>
         </div>
 
-        {companyLoading && (
-          <p className="text-sm text-center text-graphite-500 dark:text-white/50">
-            Verificando empresa...
-          </p>
+        {bootstrapping && (
+          <div className="flex flex-col gap-2">
+            <Skeleton className="h-11 w-full" />
+            <Skeleton className="h-11 w-full" />
+          </div>
         )}
 
-        {!companyLoading && companyError && (
-          <p className="text-sm text-center text-danger">{companyError}</p>
+        {!bootstrapping && step === 'company' && (
+          <div className="flex flex-col gap-2">
+            {companiesError && (
+              <EmptyState
+                icon="⚠️"
+                title="Não foi possível carregar as empresas"
+                description="Verifique sua conexão e tente novamente."
+                action={
+                  <Button size="sm" onClick={() => window.location.reload()}>
+                    Tentar de novo
+                  </Button>
+                }
+              />
+            )}
+
+            {!companiesError && companies && companies.length === 0 && (
+              <EmptyState
+                icon="🏢"
+                title="Nenhuma empresa disponível no momento"
+                description="Fale com o suporte para cadastrar seu lava-rápido no AP Auto Prime."
+                action={
+                  <Link href="/">
+                    <Button size="sm" variant="secondary">
+                      Voltar ao site
+                    </Button>
+                  </Link>
+                }
+              />
+            )}
+
+            {!companiesError &&
+              companies &&
+              companies.length > 0 &&
+              companies.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => {
+                    setCompany(c);
+                    setStep('branch');
+                  }}
+                  className="w-full text-left rounded-xl border border-black/10 dark:border-white/10 px-4 py-3 hover:border-primary-500 hover:bg-primary-500/5 transition-colors min-h-[44px]"
+                >
+                  <span className="font-medium text-graphite-900 dark:text-white">{c.name}</span>
+                </button>
+              ))}
+          </div>
         )}
 
-        {!companyLoading && company && (
+        {!bootstrapping && step === 'branch' && company && (
+          <div className="flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setStep('company');
+                setBranch(null);
+              }}
+              className="text-xs text-graphite-400 dark:text-white/40 hover:text-primary-500 self-start mb-1"
+            >
+              ← Trocar empresa
+            </button>
+
+            {branchesLoading && (
+              <>
+                <Skeleton className="h-11 w-full" />
+                <Skeleton className="h-11 w-full" />
+              </>
+            )}
+
+            {!branchesLoading && branches && branches.length === 0 && (
+              <EmptyState
+                icon="📍"
+                title="Nenhuma unidade publicada ainda"
+                description="Você pode criar sua conta normalmente e escolher a unidade depois."
+                action={
+                  <Button size="sm" onClick={() => setStep('form')}>
+                    Continuar
+                  </Button>
+                }
+              />
+            )}
+
+            {!branchesLoading &&
+              branches &&
+              branches.length > 0 &&
+              branches.map((b) => (
+                <button
+                  key={b.id}
+                  type="button"
+                  onClick={() => {
+                    setBranch(b);
+                    setStep('form');
+                  }}
+                  className="w-full text-left rounded-xl border border-black/10 dark:border-white/10 px-4 py-3 hover:border-primary-500 hover:bg-primary-500/5 transition-colors min-h-[44px]"
+                >
+                  <span className="font-medium text-graphite-900 dark:text-white block">{b.name}</span>
+                  {(b.city || b.district) && (
+                    <span className="text-xs text-graphite-500 dark:text-white/50">
+                      {[b.district, b.city, b.state].filter(Boolean).join(', ')}
+                    </span>
+                  )}
+                </button>
+              ))}
+          </div>
+        )}
+
+        {!bootstrapping && step === 'form' && company && (
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <button
+              type="button"
+              onClick={() => setStep(branches && branches.length > 0 ? 'branch' : 'company')}
+              className="text-xs text-graphite-400 dark:text-white/40 hover:text-primary-500 self-start -mt-2"
+            >
+              ← {branches && branches.length > 0 ? 'Trocar unidade' : 'Trocar empresa'}
+            </button>
+
+            {branch && (
+              <p className="text-xs text-graphite-500 dark:text-white/50 -mt-1">
+                Unidade: <span className="font-medium">{branch.name}</span>
+              </p>
+            )}
+
             <div>
               <Label htmlFor="name">Nome completo</Label>
               <Input

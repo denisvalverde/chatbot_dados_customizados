@@ -1,54 +1,59 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { api } from '@/lib/api';
 import { getAccessToken, getCurrentUser } from '@/lib/auth';
 import { SITE, whatsappHref } from '@/lib/config';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { ServiceCard } from '@/components/ui/ServiceCard';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Skeleton, SkeletonCard } from '@/components/ui/Skeleton';
 
-const FEATURED_SERVICES = [
-  {
-    name: 'Lavagem completa',
-    category: 'Lavagem',
-    description: 'Lavagem externa, limpeza de rodas e secagem cuidadosa em todo o veículo.',
-  },
-  {
-    name: 'Higienização interna',
-    category: 'Estética',
-    description: 'Aspiração completa, limpeza de estofados e painel, e eliminação de odores.',
-  },
-  {
-    name: 'Polimento e cristalização',
-    category: 'Estética automotiva',
-    description: 'Recuperação do brilho da pintura com produtos premium e proteção duradoura.',
-  },
-  {
-    name: 'Lavagem detalhada (detail)',
-    category: 'Detail',
-    description: 'Processo minucioso por dentro e por fora, indicado para quem exige o melhor acabamento.',
-  },
-];
+interface PublicService {
+  id: string;
+  name: string;
+  category: string;
+  description?: string;
+  price: string;
+  estimatedMinutes: number;
+}
+
+interface PublicBranch {
+  id: string;
+  name: string;
+  slug: string;
+  city?: string;
+  state?: string;
+  address?: string;
+  number?: string;
+  district?: string;
+  phone?: string;
+  whatsapp?: string;
+  acceptsAppointments: boolean;
+}
 
 const BENEFITS = [
-  { icon: '🧑‍🔧', title: 'Equipe treinada', description: 'Profissionais experientes seguem checklist próprio em cada etapa do serviço.' },
-  { icon: '📱', title: 'Agendamento fácil', description: 'Marque seu horário em poucos passos e acompanhe o status do seu veículo.' },
-  { icon: '🧴', title: 'Produtos premium', description: 'Materiais e produtos selecionados para proteger a pintura e o interior do seu carro.' },
-  { icon: '🔔', title: 'Acompanhamento em tempo real', description: 'Saiba quando seu veículo entra em preparo e quando está pronto para retirada.' },
+  { title: 'Equipe treinada', description: 'Profissionais experientes seguem checklist próprio em cada etapa do serviço.' },
+  { title: 'Agendamento fácil', description: 'Marque seu horário em poucos passos e acompanhe o status do seu veículo.' },
+  { title: 'Produtos premium', description: 'Materiais e produtos selecionados para proteger a pintura e o interior do seu carro.' },
+  { title: 'Acompanhamento em tempo real', description: 'Saiba quando seu veículo entra em preparo e quando está pronto para retirada.' },
 ];
 
 export default function HomePage() {
   const router = useRouter();
   const [checkingSession, setCheckingSession] = useState(true);
-  const [ctaHref, setCtaHref] = useState('/login');
+
+  const [services, setServices] = useState<PublicService[] | null>(null);
+  const [branches, setBranches] = useState<PublicBranch[] | null>(null);
+  const [citySearch, setCitySearch] = useState('');
 
   useEffect(() => {
     const token = getAccessToken();
     if (!token) {
       setCheckingSession(false);
-      setCtaHref('/login');
       return;
     }
     const user = getCurrentUser();
@@ -60,6 +65,30 @@ export default function HomePage() {
       setCheckingSession(false);
     }
   }, [router]);
+
+  useEffect(() => {
+    const slug = SITE.defaultCompanySlug;
+    if (!slug) {
+      setServices([]);
+      setBranches([]);
+      return;
+    }
+    api
+      .get<PublicService[]>(`/companies/${slug}/services`, false)
+      .then(setServices)
+      .catch(() => setServices([]));
+    api
+      .get<PublicBranch[]>(`/companies/${slug}/branches`, false)
+      .then(setBranches)
+      .catch(() => setBranches([]));
+  }, []);
+
+  const filteredBranches = useMemo(() => {
+    if (!branches) return null;
+    const term = citySearch.trim().toLowerCase();
+    if (!term) return branches;
+    return branches.filter((b) => (b.city ?? '').toLowerCase().includes(term) || b.name.toLowerCase().includes(term));
+  }, [branches, citySearch]);
 
   if (checkingSession && getAccessToken()) return null;
 
@@ -101,48 +130,105 @@ export default function HomePage() {
             veículo pronto, no tempo combinado.
           </p>
           <div className="mt-7 flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-            <Link href={ctaHref} className="w-full sm:w-auto">
-              <Button className="w-full sm:w-auto px-6">Agende seu horário</Button>
-            </Link>
             <Link href="/cadastro" className="w-full sm:w-auto">
-              <Button variant="secondary" className="w-full sm:w-auto px-6">
-                Criar conta de cliente
-              </Button>
+              <Button className="w-full sm:w-auto px-6">Agendar agora</Button>
             </Link>
+            <a href="#unidades" className="w-full sm:w-auto">
+              <Button variant="secondary" className="w-full sm:w-auto px-6">
+                Encontrar uma unidade
+              </Button>
+            </a>
           </div>
         </div>
+      </section>
+
+      {/* Unidades */}
+      <section id="unidades" className="mx-auto w-full max-w-5xl px-4 sm:px-6 py-8 sm:py-12">
+        <h2 className="text-xl sm:text-2xl font-semibold text-graphite-900 dark:text-white mb-1">
+          Nossas unidades
+        </h2>
+        <p className="text-sm text-graphite-500 dark:text-white/50 mb-5">
+          Escolha a unidade mais próxima de você.
+        </p>
+
+        {branches === null && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <SkeletonCard />
+            <SkeletonCard />
+          </div>
+        )}
+
+        {branches !== null && branches.length === 0 && (
+          <EmptyState
+            icon="📍"
+            title="Novidades em breve"
+            description="Ainda estamos publicando os endereços das nossas unidades. Fale com o suporte para mais informações."
+          />
+        )}
+
+        {branches !== null && branches.length > 0 && (
+          <>
+            <input
+              value={citySearch}
+              onChange={(e) => setCitySearch(e.target.value)}
+              placeholder="Buscar por cidade..."
+              className="mb-3 w-full sm:w-72 min-h-[44px] rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-graphite-800 px-3 text-sm outline-none focus:border-primary-500"
+            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {(filteredBranches ?? []).map((b) => (
+                <Card key={b.id} className="!p-4">
+                  <h3 className="font-medium text-graphite-900 dark:text-white">{b.name}</h3>
+                  {(b.address || b.city) && (
+                    <p className="text-sm text-graphite-500 dark:text-white/50 mt-1">
+                      {[b.address && b.number ? `${b.address}, ${b.number}` : b.address, b.district, b.city, b.state]
+                        .filter(Boolean)
+                        .join(' — ')}
+                    </p>
+                  )}
+                  <div className="mt-2">
+                    <Link href={`/cadastro?empresa=${SITE.defaultCompanySlug}&unidade=${b.slug}`}>
+                      <Button size="sm" variant="secondary">
+                        Agendar nesta unidade
+                      </Button>
+                    </Link>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </>
+        )}
       </section>
 
       {/* Serviços em destaque */}
-      <section className="mx-auto w-full max-w-5xl px-4 sm:px-6 py-8 sm:py-12">
-        <h2 className="text-xl sm:text-2xl font-semibold text-graphite-900 dark:text-white mb-1">
-          Serviços em destaque
-        </h2>
-        <p className="text-sm text-graphite-500 dark:text-white/50 mb-5">
-          Preços e prazos exatos aparecem ao selecionar sua unidade no agendamento.
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {FEATURED_SERVICES.map((s) => (
-            <ServiceCard key={s.name} name={s.name} category={s.category} description={s.description} />
-          ))}
-        </div>
-      </section>
-
-      {/* Próxima disponibilidade */}
-      <section className="mx-auto w-full max-w-5xl px-4 sm:px-6 py-4 sm:py-6">
-        <Card className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h3 className="font-semibold text-graphite-900 dark:text-white">Próxima disponibilidade</h3>
-            <p className="text-sm text-graphite-500 dark:text-white/50 mt-1">
-              Os horários livres variam por dia e por serviço — confira em tempo real ao iniciar
-              seu agendamento.
-            </p>
+      {(services === null || services.length > 0) && (
+        <section className="mx-auto w-full max-w-5xl px-4 sm:px-6 py-8 sm:py-12">
+          <h2 className="text-xl sm:text-2xl font-semibold text-graphite-900 dark:text-white mb-1">
+            Serviços
+          </h2>
+          <p className="text-sm text-graphite-500 dark:text-white/50 mb-5">
+            Preços e duração estimada, direto do nosso catálogo.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {services === null ? (
+              <>
+                <SkeletonCard />
+                <SkeletonCard />
+              </>
+            ) : (
+              services.map((s) => (
+                <ServiceCard
+                  key={s.id}
+                  name={s.name}
+                  category={s.category}
+                  description={s.description}
+                  price={Number(s.price)}
+                  estimatedMinutes={s.estimatedMinutes}
+                />
+              ))
+            )}
           </div>
-          <Link href={ctaHref} className="shrink-0">
-            <Button variant="primary" className="w-full sm:w-auto">Ver horários</Button>
-          </Link>
-        </Card>
-      </section>
+        </section>
+      )}
 
       {/* Benefícios */}
       <section className="mx-auto w-full max-w-5xl px-4 sm:px-6 py-8 sm:py-12">
@@ -152,58 +238,29 @@ export default function HomePage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {BENEFITS.map((b) => (
             <Card key={b.title} className="!p-4">
-              <span className="text-2xl">{b.icon}</span>
-              <h3 className="font-medium text-graphite-900 dark:text-white mt-2">{b.title}</h3>
+              <h3 className="font-medium text-graphite-900 dark:text-white">{b.title}</h3>
               <p className="text-sm text-graphite-500 dark:text-white/50 mt-1">{b.description}</p>
             </Card>
           ))}
         </div>
       </section>
 
-      {/* Avaliações */}
-      <section className="mx-auto w-full max-w-5xl px-4 sm:px-6 py-4 sm:py-6">
-        <Card className="text-center !py-8">
-          <span className="text-2xl">⭐</span>
-          <h3 className="font-semibold text-graphite-900 dark:text-white mt-2">
-            Avaliações verificadas — em implantação
-          </h3>
-          <p className="text-sm text-graphite-500 dark:text-white/50 mt-1 max-w-md mx-auto">
-            Em breve, avaliações reais de clientes atendidos aparecerão aqui automaticamente.
-          </p>
-        </Card>
-      </section>
-
-      {/* Contato / unidade / horário */}
-      <section className="mx-auto w-full max-w-5xl px-4 sm:px-6 py-8 sm:py-12">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <Card>
-            <h3 className="font-medium text-graphite-900 dark:text-white mb-1">📍 Unidade</h3>
-            <p className="text-sm text-graphite-500 dark:text-white/50">
-              {SITE.address || 'Endereço a configurar pela equipe AP Auto Prime.'}
-            </p>
-          </Card>
-          <Card>
-            <h3 className="font-medium text-graphite-900 dark:text-white mb-1">🕒 Horário de funcionamento</h3>
-            <p className="text-sm text-graphite-500 dark:text-white/50">
-              {SITE.businessHours || 'Horário a configurar pela equipe AP Auto Prime.'}
-            </p>
-          </Card>
-          <Card>
-            <h3 className="font-medium text-graphite-900 dark:text-white mb-1">💬 Fale conosco</h3>
-            {waHref ? (
-              <a href={waHref} target="_blank" rel="noopener noreferrer">
-                <Button variant="secondary" size="sm" className="mt-1">
-                  Chamar no WhatsApp
-                </Button>
-              </a>
-            ) : (
-              <p className="text-sm text-graphite-400 dark:text-white/40">
-                WhatsApp ainda não configurado para esta unidade.
+      {/* Contato */}
+      {waHref && (
+        <section className="mx-auto w-full max-w-5xl px-4 sm:px-6 py-4 sm:py-6">
+          <Card className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h3 className="font-medium text-graphite-900 dark:text-white">Fale conosco</h3>
+              <p className="text-sm text-graphite-500 dark:text-white/50 mt-1">
+                Dúvidas antes de agendar? Chame a gente no WhatsApp.
               </p>
-            )}
+            </div>
+            <a href={waHref} target="_blank" rel="noopener noreferrer" className="shrink-0">
+              <Button variant="secondary">Chamar no WhatsApp</Button>
+            </a>
           </Card>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Rodapé */}
       <footer className="mt-auto border-t border-black/5 dark:border-white/10 px-4 sm:px-6 py-8 pb-safe">
