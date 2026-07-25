@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { AppointmentStatus, ServiceOrderStatus, TransactionType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { getCompanyTimezone, getHourInZone } from '../common/timezone.util';
 
 @Injectable()
 export class DashboardService {
@@ -141,14 +142,19 @@ export class DashboardService {
   }
 
   async peakHours(companyId: string, from: string, to: string) {
-    const appointments = await this.prisma.appointment.findMany({
-      where: { companyId, startAt: { gte: new Date(from), lte: new Date(to) } },
-      select: { startAt: true },
-    });
+    const [appointments, timezone] = await Promise.all([
+      this.prisma.appointment.findMany({
+        where: { companyId, startAt: { gte: new Date(from), lte: new Date(to) } },
+        select: { startAt: true },
+      }),
+      getCompanyTimezone(this.prisma, companyId),
+    ]);
 
+    // Hora local da empresa, não a hora do processo Node (`Date#getHours()`
+    // usaria o fuso do servidor — UTC no Railway — deslocando o gráfico).
     const byHour = new Array(24).fill(0);
     for (const a of appointments) {
-      byHour[a.startAt.getHours()] += 1;
+      byHour[getHourInZone(a.startAt, timezone)] += 1;
     }
 
     return byHour.map((count, hour) => ({ hour, count }));

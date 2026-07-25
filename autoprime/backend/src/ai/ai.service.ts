@@ -4,8 +4,15 @@ import Anthropic from '@anthropic-ai/sdk';
 import { AppointmentStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { GenerateMessageDto } from './dto/generate-message.dto';
+import {
+  endOfDayInZone,
+  getCompanyTimezone,
+  isPastInstant,
+  startOfDayInZone,
+  zonedDateTime,
+} from '../common/timezone.util';
 
-const BUSINESS_HOURS = { start: 8, end: 18 }; // 08:00 às 18:00
+const BUSINESS_HOURS = { start: '08:00', end: '18:00' };
 const SLOT_STEP_MINUTES = 30;
 
 @Injectable()
@@ -23,12 +30,22 @@ export class AiService {
 
   /**
    * Sugere horários livres em um dia, considerando os agendamentos já
-   * existentes e a duração do serviço desejado. Lógica determinística —
-   * não depende de LLM.
+   * existentes e a duração do serviço desejado. Lógica determinística — não
+   * depende de LLM. Esta função é a ÚNICA fonte de verdade de disponibilidade:
+   * qualquer sugestão apresentada ao cliente (inclusive por um agente de IA)
+   * deve vir exclusivamente daqui, nunca ser inventada ou recalculada em
+   * outra camada. Mesmo assim, `SchedulingService.create` revalida o slot no
+   * momento da confirmação — uma sugestão obtida segundos atrás não garante
+   * que o horário continue livre.
+   *
+   * "08:00"/"18:00" são interpretados como horário LOCAL da empresa, no fuso
+   * IANA configurado em `Company.timezone` — nunca no fuso do processo
+   * Node (que no Railway é UTC e localmente pode ser qualquer um).
    */
   async suggestSlots(companyId: string, date: string, durationMinutes: number) {
-    const dayStart = new Date(`${date}T00:00:00`);
-    const dayEnd = new Date(`${date}T23:59:59`);
+    const timezone = await getCompanyTimezone(this.prisma, companyId);
+    const dayStart = startOfDayInZone(date, timezone);
+    const dayEnd = endOfDayInZone(date, timezone);
 
     const appointments = await this.prisma.appointment.findMany({
       where: {
@@ -46,16 +63,17 @@ export class AiService {
     });
 
     const slots: { startAt: string; endAt: string }[] = [];
-    const businessStart = new Date(
-      `${date}T${String(BUSINESS_HOURS.start).padStart(2, '0')}:00:00`,
-    );
-    const businessEnd = new Date(`${date}T${String(BUSINESS_HOURS.end).padStart(2, '0')}:00:00`);
+    const businessStart = zonedDateTime(date, BUSINESS_HOURS.start, timezone);
+    const businessEnd = zonedDateTime(date, BUSINESS_HOURS.end, timezone);
+    const now = new Date();
 
     for (
       let cursor = new Date(businessStart);
       cursor.getTime() + durationMinutes * 60_000 <= businessEnd.getTime();
       cursor = new Date(cursor.getTime() + SLOT_STEP_MINUTES * 60_000)
     ) {
+      if (isPastInstant(cursor, now)) continue;
+
       const slotEnd = new Date(cursor.getTime() + durationMinutes * 60_000);
       const conflicts = appointments.some((a) => cursor < a.endAt && slotEnd > a.startAt);
       if (!conflicts) {
@@ -63,7 +81,7 @@ export class AiService {
       }
     }
 
-    return { date, durationMinutes, availableSlots: slots };
+    return { date, timezone, durationMinutes, availableSlots: slots };
   }
 
   /**

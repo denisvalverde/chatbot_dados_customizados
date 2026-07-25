@@ -53,6 +53,15 @@ export interface ServiceRecord {
   checklistItems: { id: string; label: string }[];
 }
 
+export interface CompanyRecord {
+  id: string;
+  name: string;
+  slug: string;
+  active: boolean;
+  /** Fuso IANA da empresa (ex.: "America/Sao_Paulo") — nunca assuma o fuso do navegador. */
+  timezone: string;
+}
+
 export interface AppointmentRecord {
   id: string;
   startAt: string;

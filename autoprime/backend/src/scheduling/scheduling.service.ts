@@ -9,6 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { RescheduleAppointmentDto } from './dto/reschedule-appointment.dto';
 import { NotificationsService } from '../notifications/notifications.service';
+import { formatInZone, getCompanyTimezone, isPastInstant } from '../common/timezone.util';
 
 const ACTIVE_STATUSES: AppointmentStatus[] = [
   AppointmentStatus.PENDING,
@@ -47,6 +48,15 @@ export class SchedulingService {
     const startAt = new Date(dto.startAt);
     const endAt = new Date(startAt.getTime() + totalMinutes * 60_000);
 
+    // Comparação de instantes absolutos: independe do fuso do servidor ou do
+    // navegador — `startAt` e `new Date()` já são ambos UTC internamente.
+    if (isPastInstant(startAt)) {
+      const timezone = await getCompanyTimezone(this.prisma, companyId);
+      throw new BadRequestException(
+        `Não é possível agendar para um horário no passado (${formatInZone(startAt, timezone)}, horário da empresa).`,
+      );
+    }
+
     if (dto.employeeIds?.length) {
       await this.assertEmployeesAvailable(companyId, dto.employeeIds, startAt, endAt);
     }
@@ -78,6 +88,7 @@ export class SchedulingService {
       appointment.client.userId,
       appointment.client.user.email,
       startAt,
+      await getCompanyTimezone(this.prisma, companyId),
     );
 
     return appointment;
@@ -115,6 +126,13 @@ export class SchedulingService {
     const duration = appointment.endAt.getTime() - appointment.startAt.getTime();
     const startAt = new Date(dto.startAt);
     const endAt = new Date(startAt.getTime() + duration);
+
+    if (isPastInstant(startAt)) {
+      const timezone = await getCompanyTimezone(this.prisma, companyId);
+      throw new BadRequestException(
+        `Não é possível reagendar para um horário no passado (${formatInZone(startAt, timezone)}, horário da empresa).`,
+      );
+    }
 
     const employeeIds = appointment.employees.map((e) => e.employeeId);
     if (employeeIds.length) {

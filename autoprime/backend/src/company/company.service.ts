@@ -3,6 +3,7 @@ import * as bcrypt from 'bcrypt';
 import { Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCompanyDto } from './dto/create-company.dto';
+import { DEFAULT_TIMEZONE } from '../common/timezone.util';
 
 @Injectable()
 export class CompanyService {
@@ -22,6 +23,7 @@ export class CompanyService {
       data: {
         name: dto.name,
         slug: dto.slug,
+        timezone: dto.timezone ?? DEFAULT_TIMEZONE,
         users: {
           create: {
             name: dto.adminName,
@@ -44,12 +46,24 @@ export class CompanyService {
     if (!company || !company.active) {
       throw new NotFoundException('Empresa não encontrada.');
     }
-    return { id: company.id, name: company.name, slug: company.slug };
+    return { id: company.id, name: company.name, slug: company.slug, timezone: company.timezone };
+  }
+
+  async findById(id: string) {
+    const company = await this.prisma.company.findUnique({ where: { id } });
+    if (!company) throw new NotFoundException('Empresa não encontrada.');
+    return company;
   }
 
   async setActive(id: string, active: boolean) {
     const company = await this.prisma.company.findUnique({ where: { id } });
     if (!company) throw new NotFoundException('Empresa não encontrada.');
     return this.prisma.company.update({ where: { id }, data: { active } });
+  }
+
+  async updateTimezone(id: string, timezone: string) {
+    const company = await this.prisma.company.findUnique({ where: { id } });
+    if (!company) throw new NotFoundException('Empresa não encontrada.');
+    return this.prisma.company.update({ where: { id }, data: { timezone } });
   }
 }

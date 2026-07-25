@@ -3,6 +3,8 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { api, ApiError } from '@/lib/api';
 import { AppointmentRecord, ClientRecord, ServiceRecord, VehicleRecord } from '@/lib/types';
+import { formatDateTimeInZone, zonedLocalInputToIso } from '@/lib/datetime';
+import { useCompany } from '@/lib/company-context';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { Input, Label, Select } from '@/components/ui/Input';
@@ -22,6 +24,7 @@ const STATUS_TONE: Record<string, 'neutral' | 'success' | 'warning' | 'danger' |
 };
 
 export default function SchedulingPage() {
+  const { timezone } = useCompany();
   const [appointments, setAppointments] = useState<AppointmentRecord[]>([]);
   const [clients, setClients] = useState<ClientRecord[]>([]);
   const [vehicles, setVehicles] = useState<VehicleRecord[]>([]);
@@ -79,7 +82,10 @@ export default function SchedulingPage() {
         clientId: form.clientId,
         vehicleId: form.vehicleId,
         serviceIds: form.serviceIds,
-        startAt: new Date(form.startAt).toISOString(),
+        // Interpreta o valor do input no fuso da EMPRESA, não no fuso do
+        // navegador (`new Date(form.startAt).toISOString()` usaria o fuso
+        // local do computador de quem está digitando).
+        startAt: zonedLocalInputToIso(form.startAt, timezone),
       });
       setOpen(false);
       setForm({ clientId: '', vehicleId: '', serviceIds: [], startAt: '' });
@@ -122,7 +128,7 @@ export default function SchedulingPage() {
         <tbody>
           {appointments.map((a) => (
             <Tr key={a.id}>
-              <Td>{new Date(a.startAt).toLocaleString('pt-BR')}</Td>
+              <Td>{formatDateTimeInZone(a.startAt, timezone)}</Td>
               <Td>{a.client.user.name}</Td>
               <Td>
                 {a.vehicle.brand} {a.vehicle.model} · {a.vehicle.plate}
@@ -198,7 +204,7 @@ export default function SchedulingPage() {
           </div>
 
           <div>
-            <Label>Data e hora</Label>
+            <Label>Data e hora (horário da empresa — {timezone})</Label>
             <Input
               type="datetime-local"
               required

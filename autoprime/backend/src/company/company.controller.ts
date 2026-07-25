@@ -4,8 +4,10 @@ import { Role } from '@prisma/client';
 import { Public } from '../common/decorators/public.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import { CompanyId } from '../common/decorators/company-id.decorator';
 import { CompanyService } from './company.service';
 import { CreateCompanyDto } from './dto/create-company.dto';
+import { UpdateTimezoneDto } from './dto/update-timezone.dto';
 
 @ApiTags('companies')
 @Controller('companies')
@@ -16,6 +18,20 @@ export class CompanyController {
   @Get('by-slug/:slug')
   findBySlug(@Param('slug') slug: string) {
     return this.companyService.findBySlug(slug);
+  }
+
+  @ApiBearerAuth()
+  @Get('me')
+  findMe(@CompanyId() companyId: string) {
+    return this.companyService.findById(companyId);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @Patch('me/timezone')
+  updateMyTimezone(@CompanyId() companyId: string, @Body() dto: UpdateTimezoneDto) {
+    return this.companyService.updateTimezone(companyId, dto.timezone);
   }
 
   @ApiBearerAuth()

@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { EmailAdapter } from './adapters/email.adapter';
 import { PushAdapter } from './adapters/push.adapter';
 import { WhatsappAdapter } from './adapters/whatsapp.adapter';
+import { DEFAULT_TIMEZONE, formatInZone } from '../common/timezone.util';
 
 @Injectable()
 export class NotificationsService {
@@ -30,8 +31,15 @@ export class NotificationsService {
     });
   }
 
-  async sendAppointmentConfirmation(userId: string, to: string, when: Date) {
-    const formatted = when.toLocaleString('pt-BR');
+  async sendAppointmentConfirmation(
+    userId: string,
+    to: string,
+    when: Date,
+    timezone: string = DEFAULT_TIMEZONE,
+  ) {
+    // Formata no fuso da empresa — nunca no fuso do servidor
+    // (`Date#toLocaleString` sem `timeZone` explícito usa o fuso do processo).
+    const formatted = formatInZone(when, timezone);
     await this.logAndSend(userId, NotificationChannel.EMAIL, 'Agendamento confirmado', async () => {
       await this.email.send({
         to,
@@ -41,8 +49,13 @@ export class NotificationsService {
     });
   }
 
-  async sendAppointmentReminderWhatsapp(userId: string, phone: string, when: Date) {
-    const formatted = when.toLocaleString('pt-BR');
+  async sendAppointmentReminderWhatsapp(
+    userId: string,
+    phone: string,
+    when: Date,
+    timezone: string = DEFAULT_TIMEZONE,
+  ) {
+    const formatted = formatInZone(when, timezone);
     await this.logAndSend(
       userId,
       NotificationChannel.WHATSAPP,

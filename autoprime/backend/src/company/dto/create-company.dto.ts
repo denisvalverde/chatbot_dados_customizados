@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsString, Matches, MinLength } from 'class-validator';
+import { IsEmail, IsOptional, IsString, Matches, MinLength } from 'class-validator';
+import { IsIanaTimezone } from '../../common/timezone.util';
 
 export class CreateCompanyDto {
   @ApiProperty({ description: 'Nome da empresa' })
@@ -25,4 +26,12 @@ export class CreateCompanyDto {
   @IsString()
   @MinLength(8)
   adminPassword!: string;
+
+  @ApiProperty({
+    required: false,
+    description: 'Fuso IANA da empresa (ex.: "America/Sao_Paulo"). Default: "America/Sao_Paulo".',
+  })
+  @IsOptional()
+  @IsIanaTimezone()
+  timezone?: string;
 }
