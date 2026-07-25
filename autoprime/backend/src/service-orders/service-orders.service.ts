@@ -8,9 +8,9 @@ import { AddPhotoDto } from './dto/add-photo.dto';
 export class ServiceOrdersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(dto: CreateServiceOrderDto) {
+  async create(companyId: string, dto: CreateServiceOrderDto) {
     if (dto.appointmentId) {
-      return this.createFromAppointment(dto.appointmentId);
+      return this.createFromAppointment(companyId, dto.appointmentId);
     }
 
     if (!dto.clientId || !dto.vehicleId || !dto.serviceIds?.length) {
@@ -19,30 +19,50 @@ export class ServiceOrdersService {
       );
     }
 
-    const services = await this.prisma.service.findMany({ where: { id: { in: dto.serviceIds } } });
+    const [client, vehicle, services] = await Promise.all([
+      this.prisma.client.findFirst({ where: { id: dto.clientId, companyId } }),
+      this.prisma.vehicle.findFirst({
+        where: { id: dto.vehicleId, companyId, clientId: dto.clientId },
+      }),
+      this.prisma.service.findMany({ where: { id: { in: dto.serviceIds }, companyId } }),
+    ]);
+    if (!client) throw new BadRequestException('Cliente não encontrado nesta empresa.');
+    if (!vehicle) throw new BadRequestException('Veículo não encontrado para este cliente.');
     if (services.length !== dto.serviceIds.length) {
       throw new BadRequestException('Um ou mais serviços informados não existem.');
     }
 
+    let employeeIds: string[] = [];
+    if (dto.employeeIds?.length) {
+      const employees = await this.prisma.employee.findMany({
+        where: { id: { in: dto.employeeIds }, companyId },
+      });
+      if (employees.length !== dto.employeeIds.length) {
+        throw new BadRequestException(
+          'Um ou mais funcionários informados não existem nesta empresa.',
+        );
+      }
+      employeeIds = employees.map((e) => e.id);
+    }
+
     return this.prisma.serviceOrder.create({
       data: {
+        companyId,
         clientId: dto.clientId,
         vehicleId: dto.vehicleId,
         items: { create: services.map((s) => ({ serviceId: s.id, price: s.price })) },
         checklist: {
           create: await this.buildChecklistFromServices(services.map((s) => s.id)),
         },
-        employees: dto.employeeIds?.length
-          ? { connect: dto.employeeIds.map((id) => ({ id })) }
-          : undefined,
+        employees: employeeIds.length ? { connect: employeeIds.map((id) => ({ id })) } : undefined,
       },
       include: this.include(),
     });
   }
 
-  private async createFromAppointment(appointmentId: string) {
-    const appointment = await this.prisma.appointment.findUnique({
-      where: { id: appointmentId },
+  private async createFromAppointment(companyId: string, appointmentId: string) {
+    const appointment = await this.prisma.appointment.findFirst({
+      where: { id: appointmentId, companyId },
       include: { services: { include: { service: true } }, employees: true },
     });
     if (!appointment) throw new NotFoundException('Agendamento não encontrado.');
@@ -51,6 +71,7 @@ export class ServiceOrdersService {
 
     return this.prisma.serviceOrder.create({
       data: {
+        companyId,
         appointmentId: appointment.id,
         clientId: appointment.clientId,
         vehicleId: appointment.vehicleId,
@@ -77,41 +98,41 @@ export class ServiceOrdersService {
     return templates.map((t) => ({ label: t.label }));
   }
 
-  findAll(status?: ServiceOrderStatus) {
+  findAll(companyId: string, status?: ServiceOrderStatus) {
     return this.prisma.serviceOrder.findMany({
-      where: status ? { status } : undefined,
+      where: { companyId, ...(status ? { status } : {}) },
       include: this.include(),
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  async findOne(id: string) {
-    const order = await this.prisma.serviceOrder.findUnique({
-      where: { id },
+  async findOne(companyId: string, id: string) {
+    const order = await this.prisma.serviceOrder.findFirst({
+      where: { id, companyId },
       include: this.include(),
     });
     if (!order) throw new NotFoundException('Ordem de serviço não encontrada.');
     return order;
   }
 
-  async start(id: string) {
-    await this.findOne(id);
+  async start(companyId: string, id: string) {
+    await this.findOne(companyId, id);
     return this.prisma.serviceOrder.update({
       where: { id },
       data: { status: ServiceOrderStatus.IN_PROGRESS, startedAt: new Date() },
     });
   }
 
-  async toggleChecklistItem(id: string, itemId: string, checked: boolean) {
-    await this.findOne(id);
+  async toggleChecklistItem(companyId: string, id: string, itemId: string, checked: boolean) {
+    await this.findOne(companyId, id);
     return this.prisma.serviceOrderChecklistItem.update({
       where: { id: itemId },
       data: { checked, checkedAt: checked ? new Date() : null },
     });
   }
 
-  async addPhoto(id: string, dto: AddPhotoDto) {
-    await this.findOne(id);
+  async addPhoto(companyId: string, id: string, dto: AddPhotoDto) {
+    await this.findOne(companyId, id);
     return this.prisma.serviceOrderPhoto.create({
       data: { serviceOrderId: id, stage: dto.stage, url: dto.url },
     });
@@ -121,8 +142,8 @@ export class ServiceOrdersService {
    * Finaliza a OS: baixa o estoque dos produtos utilizados nos serviços e
    * lança a receita no financeiro. Roda em transação para manter consistência.
    */
-  async complete(id: string) {
-    const order = await this.findOne(id);
+  async complete(companyId: string, id: string) {
+    const order = await this.findOne(companyId, id);
     if (order.status === ServiceOrderStatus.COMPLETED) {
       throw new BadRequestException('Esta OS já está concluída.');
     }
@@ -151,6 +172,7 @@ export class ServiceOrdersService {
       const total = order.items.reduce((sum, item) => sum + Number(item.price), 0);
       await tx.transaction.create({
         data: {
+          companyId,
           type: TransactionType.INCOME,
           category: 'Serviços',
           description: `Receita da OS #${order.number}`,
@@ -168,8 +190,8 @@ export class ServiceOrdersService {
     });
   }
 
-  async deliver(id: string, signatureUrl?: string) {
-    await this.findOne(id);
+  async deliver(companyId: string, id: string, signatureUrl?: string) {
+    await this.findOne(companyId, id);
     return this.prisma.serviceOrder.update({
       where: { id },
       data: { status: ServiceOrderStatus.DELIVERED, signatureUrl },

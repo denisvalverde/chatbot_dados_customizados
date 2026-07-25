@@ -26,12 +26,13 @@ export class AiService {
    * existentes e a duração do serviço desejado. Lógica determinística —
    * não depende de LLM.
    */
-  async suggestSlots(date: string, durationMinutes: number) {
+  async suggestSlots(companyId: string, date: string, durationMinutes: number) {
     const dayStart = new Date(`${date}T00:00:00`);
     const dayEnd = new Date(`${date}T23:59:59`);
 
     const appointments = await this.prisma.appointment.findMany({
       where: {
+        companyId,
         startAt: { gte: dayStart, lte: dayEnd },
         status: {
           in: [
@@ -68,8 +69,9 @@ export class AiService {
   /**
    * Clientes VIP: maior gasto acumulado e maior frequência de visitas.
    */
-  async identifyVipClients(limit = 10) {
+  async identifyVipClients(companyId: string, limit = 10) {
     const clients = await this.prisma.client.findMany({
+      where: { companyId },
       include: {
         user: true,
         serviceOrders: { where: { status: 'COMPLETED' }, include: { items: true } },
@@ -94,11 +96,12 @@ export class AiService {
   /**
    * Clientes inativos: sem agendamento nos últimos `sinceDays` dias.
    */
-  async identifyInactiveClients(sinceDays = 60) {
+  async identifyInactiveClients(companyId: string, sinceDays = 60) {
     const threshold = new Date();
     threshold.setDate(threshold.getDate() - sinceDays);
 
     const clients = await this.prisma.client.findMany({
+      where: { companyId },
       include: { user: true, appointments: { orderBy: { startAt: 'desc' }, take: 1 } },
     });
 

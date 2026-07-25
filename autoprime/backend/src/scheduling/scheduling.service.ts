@@ -24,10 +24,19 @@ export class SchedulingService {
     private readonly notifications: NotificationsService,
   ) {}
 
-  async create(dto: CreateAppointmentDto) {
-    const services = await this.prisma.service.findMany({
-      where: { id: { in: dto.serviceIds }, active: true },
-    });
+  async create(companyId: string, dto: CreateAppointmentDto) {
+    const [client, vehicle, services] = await Promise.all([
+      this.prisma.client.findFirst({ where: { id: dto.clientId, companyId } }),
+      this.prisma.vehicle.findFirst({
+        where: { id: dto.vehicleId, companyId, clientId: dto.clientId },
+      }),
+      this.prisma.service.findMany({
+        where: { id: { in: dto.serviceIds }, companyId, active: true },
+      }),
+    ]);
+
+    if (!client) throw new BadRequestException('Cliente não encontrado nesta empresa.');
+    if (!vehicle) throw new BadRequestException('Veículo não encontrado para este cliente.');
     if (services.length !== dto.serviceIds.length) {
       throw new BadRequestException(
         'Um ou mais serviços informados não existem ou estão inativos.',
@@ -39,11 +48,12 @@ export class SchedulingService {
     const endAt = new Date(startAt.getTime() + totalMinutes * 60_000);
 
     if (dto.employeeIds?.length) {
-      await this.assertEmployeesAvailable(dto.employeeIds, startAt, endAt);
+      await this.assertEmployeesAvailable(companyId, dto.employeeIds, startAt, endAt);
     }
 
     const appointment = await this.prisma.appointment.create({
       data: {
+        companyId,
         clientId: dto.clientId,
         vehicleId: dto.vehicleId,
         startAt,
@@ -73,9 +83,9 @@ export class SchedulingService {
     return appointment;
   }
 
-  async findAgenda(from: string, to: string) {
+  async findAgenda(companyId: string, from: string, to: string) {
     return this.prisma.appointment.findMany({
-      where: { startAt: { gte: new Date(from) }, endAt: { lte: new Date(to) } },
+      where: { companyId, startAt: { gte: new Date(from) }, endAt: { lte: new Date(to) } },
       include: {
         client: { include: { user: true } },
         vehicle: true,
@@ -86,9 +96,9 @@ export class SchedulingService {
     });
   }
 
-  async findOne(id: string) {
-    const appointment = await this.prisma.appointment.findUnique({
-      where: { id },
+  async findOne(companyId: string, id: string) {
+    const appointment = await this.prisma.appointment.findFirst({
+      where: { id, companyId },
       include: {
         client: { include: { user: true } },
         vehicle: true,
@@ -100,15 +110,15 @@ export class SchedulingService {
     return appointment;
   }
 
-  async reschedule(id: string, dto: RescheduleAppointmentDto) {
-    const appointment = await this.findOne(id);
+  async reschedule(companyId: string, id: string, dto: RescheduleAppointmentDto) {
+    const appointment = await this.findOne(companyId, id);
     const duration = appointment.endAt.getTime() - appointment.startAt.getTime();
     const startAt = new Date(dto.startAt);
     const endAt = new Date(startAt.getTime() + duration);
 
     const employeeIds = appointment.employees.map((e) => e.employeeId);
     if (employeeIds.length) {
-      await this.assertEmployeesAvailable(employeeIds, startAt, endAt, id);
+      await this.assertEmployeesAvailable(companyId, employeeIds, startAt, endAt, id);
     }
 
     return this.prisma.appointment.update({
@@ -117,30 +127,41 @@ export class SchedulingService {
     });
   }
 
-  async cancel(id: string, reason?: string) {
-    await this.findOne(id);
+  async cancel(companyId: string, id: string, reason?: string) {
+    await this.findOne(companyId, id);
     return this.prisma.appointment.update({
       where: { id },
       data: { status: AppointmentStatus.CANCELLED, cancelReason: reason },
     });
   }
 
-  async updateStatus(id: string, status: AppointmentStatus) {
-    await this.findOne(id);
+  async updateStatus(companyId: string, id: string, status: AppointmentStatus) {
+    await this.findOne(companyId, id);
     return this.prisma.appointment.update({ where: { id }, data: { status } });
   }
 
   private async assertEmployeesAvailable(
+    companyId: string,
     employeeIds: string[],
     startAt: Date,
     endAt: Date,
     excludeAppointmentId?: string,
   ) {
+    const employees = await this.prisma.employee.findMany({
+      where: { id: { in: employeeIds }, companyId },
+    });
+    if (employees.length !== employeeIds.length) {
+      throw new BadRequestException(
+        'Um ou mais funcionários informados não existem nesta empresa.',
+      );
+    }
+
     const overlapping = await this.prisma.appointmentEmployee.findMany({
       where: {
         employeeId: { in: employeeIds },
         appointment: {
           id: excludeAppointmentId ? { not: excludeAppointmentId } : undefined,
+          companyId,
           status: { in: ACTIVE_STATUSES },
           startAt: { lt: endAt },
           endAt: { gt: startAt },

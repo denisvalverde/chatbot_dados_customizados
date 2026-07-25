@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Role, TransactionType } from '@prisma/client';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import { CompanyId } from '../common/decorators/company-id.decorator';
 import { FinancialService } from './financial.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 
@@ -17,26 +18,27 @@ export class FinancialController {
   constructor(private readonly financialService: FinancialService) {}
 
   @Post('transactions')
-  createTransaction(@Body() dto: CreateTransactionDto) {
-    return this.financialService.createTransaction(dto);
+  createTransaction(@CompanyId() companyId: string, @Body() dto: CreateTransactionDto) {
+    return this.financialService.createTransaction(companyId, dto);
   }
 
   @Get('transactions')
   findTransactions(
+    @CompanyId() companyId: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
     @Query('type') type?: TransactionType,
   ) {
-    return this.financialService.findTransactions(from, to, type);
+    return this.financialService.findTransactions(companyId, from, to, type);
   }
 
   @Get('cash-flow')
-  cashFlow(@Query('from') from: string, @Query('to') to: string) {
-    return this.financialService.cashFlow(from, to);
+  cashFlow(@CompanyId() companyId: string, @Query('from') from: string, @Query('to') to: string) {
+    return this.financialService.cashFlow(companyId, from, to);
   }
 
   @Get('dre')
-  dre(@Query('from') from: string, @Query('to') to: string) {
-    return this.financialService.dre(from, to);
+  dre(@CompanyId() companyId: string, @Query('from') from: string, @Query('to') to: string) {
+    return this.financialService.dre(companyId, from, to);
   }
 }

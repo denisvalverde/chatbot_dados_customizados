@@ -7,11 +7,12 @@ import { UpdateServiceDto } from './dto/update-service.dto';
 export class CatalogService {
   constructor(private readonly prisma: PrismaService) {}
 
-  create(dto: CreateServiceDto) {
+  create(companyId: string, dto: CreateServiceDto) {
     const { checklist, products, ...rest } = dto;
     return this.prisma.service.create({
       data: {
         ...rest,
+        companyId,
         checklistItems: checklist
           ? { create: checklist.map((label, order) => ({ label, order })) }
           : undefined,
@@ -23,25 +24,25 @@ export class CatalogService {
     });
   }
 
-  findAll(onlyActive = true) {
+  findAll(companyId: string, onlyActive = true) {
     return this.prisma.service.findMany({
-      where: onlyActive ? { active: true } : undefined,
+      where: { companyId, ...(onlyActive ? { active: true } : {}) },
       include: { checklistItems: true, productsUsed: { include: { product: true } } },
       orderBy: { category: 'asc' },
     });
   }
 
-  async findOne(id: string) {
-    const service = await this.prisma.service.findUnique({
-      where: { id },
+  async findOne(companyId: string, id: string) {
+    const service = await this.prisma.service.findFirst({
+      where: { id, companyId },
       include: { checklistItems: true, productsUsed: { include: { product: true } } },
     });
     if (!service) throw new NotFoundException('Serviço não encontrado.');
     return service;
   }
 
-  async update(id: string, dto: UpdateServiceDto) {
-    await this.findOne(id);
+  async update(companyId: string, id: string, dto: UpdateServiceDto) {
+    await this.findOne(companyId, id);
     const { checklist, products, ...rest } = dto;
 
     return this.prisma.$transaction(async (tx) => {
@@ -68,8 +69,8 @@ export class CatalogService {
     });
   }
 
-  async deactivate(id: string) {
-    await this.findOne(id);
+  async deactivate(companyId: string, id: string) {
+    await this.findOne(companyId, id);
     return this.prisma.service.update({ where: { id }, data: { active: false } });
   }
 }

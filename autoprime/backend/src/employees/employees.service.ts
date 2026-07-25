@@ -6,17 +6,17 @@ import { CreateShiftDto } from './dto/create-shift.dto';
 export class EmployeesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findAll() {
+  findAll(companyId: string) {
     return this.prisma.employee.findMany({
-      where: { active: true },
+      where: { companyId, active: true },
       include: { user: true, shifts: true },
       orderBy: { hiredAt: 'desc' },
     });
   }
 
-  async findOne(id: string) {
-    const employee = await this.prisma.employee.findUnique({
-      where: { id },
+  async findOne(companyId: string, id: string) {
+    const employee = await this.prisma.employee.findFirst({
+      where: { id, companyId },
       include: {
         user: true,
         shifts: true,
@@ -27,37 +27,37 @@ export class EmployeesService {
     return employee;
   }
 
-  addShift(employeeId: string, dto: CreateShiftDto) {
+  async addShift(companyId: string, employeeId: string, dto: CreateShiftDto) {
+    await this.findOne(companyId, employeeId);
     return this.prisma.employeeShift.create({ data: { employeeId, ...dto } });
   }
 
-  async checkIn(employeeId: string) {
-    const open = await this.prisma.timeEntry.findFirst({
-      where: { employeeId, checkOut: null },
-    });
+  async checkIn(companyId: string, employeeId: string) {
+    await this.findOne(companyId, employeeId);
+    const open = await this.prisma.timeEntry.findFirst({ where: { employeeId, checkOut: null } });
     if (open) throw new BadRequestException('Já existe um ponto em aberto para este funcionário.');
-
     return this.prisma.timeEntry.create({ data: { employeeId, checkIn: new Date() } });
   }
 
-  async checkOut(employeeId: string) {
+  async checkOut(companyId: string, employeeId: string) {
+    await this.findOne(companyId, employeeId);
     const open = await this.prisma.timeEntry.findFirst({
       where: { employeeId, checkOut: null },
       orderBy: { checkIn: 'desc' },
     });
     if (!open) throw new BadRequestException('Não há ponto em aberto para este funcionário.');
-
     return this.prisma.timeEntry.update({ where: { id: open.id }, data: { checkOut: new Date() } });
   }
 
-  async calculateCommission(employeeId: string, referenceMonth: string) {
-    const employee = await this.findOne(employeeId);
+  async calculateCommission(companyId: string, employeeId: string, referenceMonth: string) {
+    const employee = await this.findOne(companyId, employeeId);
     const [year, month] = referenceMonth.split('-').map(Number);
     const start = new Date(year, month - 1, 1);
     const end = new Date(year, month, 1);
 
     const orders = await this.prisma.serviceOrder.findMany({
       where: {
+        companyId,
         employees: { some: { id: employeeId } },
         status: 'COMPLETED',
         finishedAt: { gte: start, lt: end },

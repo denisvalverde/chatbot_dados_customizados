@@ -21,7 +21,7 @@ describe('AiService', () => {
       },
     ]);
 
-    const result = await service.suggestSlots('2026-08-03', 60);
+    const result = await service.suggestSlots('company-1', '2026-08-03', 60);
 
     expect(result.availableSlots.length).toBeGreaterThan(0);
     // Não deve haver slot de 60min começando às 09:00 (conflita).

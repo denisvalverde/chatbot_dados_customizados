@@ -9,7 +9,7 @@ import { UpdateClientDto } from './dto/update-client.dto';
 export class ClientsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(dto: CreateClientDto) {
+  async create(companyId: string, dto: CreateClientDto) {
     const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (existing) throw new ConflictException('Já existe uma conta com este e-mail.');
 
@@ -22,8 +22,10 @@ export class ClientsService {
         phone: dto.phone,
         passwordHash,
         role: Role.CLIENT,
+        companyId,
         client: {
           create: {
+            companyId,
             document: dto.document,
             rg: dto.rg,
             addressStreet: dto.addressStreet,
@@ -39,10 +41,11 @@ export class ClientsService {
     });
   }
 
-  async findAll(search?: string) {
+  async findAll(companyId: string, search?: string) {
     return this.prisma.user.findMany({
       where: {
         role: Role.CLIENT,
+        companyId,
         ...(search
           ? {
               OR: [
@@ -58,17 +61,17 @@ export class ClientsService {
     });
   }
 
-  async findOne(id: string) {
-    const client = await this.prisma.client.findUnique({
-      where: { id },
+  async findOne(companyId: string, id: string) {
+    const client = await this.prisma.client.findFirst({
+      where: { id, companyId },
       include: { user: true, vehicles: true, loyaltyAccount: true },
     });
     if (!client) throw new NotFoundException('Cliente não encontrado.');
     return client;
   }
 
-  async update(id: string, dto: UpdateClientDto) {
-    await this.findOne(id);
+  async update(companyId: string, id: string, dto: UpdateClientDto) {
+    await this.findOne(companyId, id);
     const { name, phone, ...clientFields } = dto;
     return this.prisma.client.update({
       where: { id },
@@ -85,9 +88,8 @@ export class ClientsService {
     });
   }
 
-  async remove(id: string) {
-    await this.findOne(id);
-    const client = await this.prisma.client.findUniqueOrThrow({ where: { id } });
+  async remove(companyId: string, id: string) {
+    const client = await this.findOne(companyId, id);
     await this.prisma.user.update({ where: { id: client.userId }, data: { isActive: false } });
     return { success: true };
   }

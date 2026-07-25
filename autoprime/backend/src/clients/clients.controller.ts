@@ -13,6 +13,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import { CompanyId } from '../common/decorators/company-id.decorator';
 import { ClientsService } from './clients.service';
 import { CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
@@ -26,31 +27,31 @@ export class ClientsController {
 
   @Roles(Role.ADMIN, Role.MANAGER, Role.EMPLOYEE)
   @Post()
-  create(@Body() dto: CreateClientDto) {
-    return this.clientsService.create(dto);
+  create(@CompanyId() companyId: string, @Body() dto: CreateClientDto) {
+    return this.clientsService.create(companyId, dto);
   }
 
   @Roles(Role.ADMIN, Role.MANAGER, Role.EMPLOYEE, Role.FINANCE)
   @Get()
-  findAll(@Query('search') search?: string) {
-    return this.clientsService.findAll(search);
+  findAll(@CompanyId() companyId: string, @Query('search') search?: string) {
+    return this.clientsService.findAll(companyId, search);
   }
 
   @Roles(Role.ADMIN, Role.MANAGER, Role.EMPLOYEE, Role.FINANCE)
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.clientsService.findOne(id);
+  findOne(@CompanyId() companyId: string, @Param('id') id: string) {
+    return this.clientsService.findOne(companyId, id);
   }
 
   @Roles(Role.ADMIN, Role.MANAGER, Role.EMPLOYEE)
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateClientDto) {
-    return this.clientsService.update(id, dto);
+  update(@CompanyId() companyId: string, @Param('id') id: string, @Body() dto: UpdateClientDto) {
+    return this.clientsService.update(companyId, id, dto);
   }
 
   @Roles(Role.ADMIN, Role.MANAGER)
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.clientsService.remove(id);
+  remove(@CompanyId() companyId: string, @Param('id') id: string) {
+    return this.clientsService.remove(companyId, id);
   }
 }

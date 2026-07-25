@@ -8,32 +8,39 @@ import { CreateStockMovementDto } from './dto/stock-movement.dto';
 export class InventoryService {
   constructor(private readonly prisma: PrismaService) {}
 
-  createProduct(dto: CreateProductDto) {
+  createProduct(companyId: string, dto: CreateProductDto) {
     return this.prisma.product.create({
-      data: { ...dto, expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : undefined },
+      data: { ...dto, companyId, expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : undefined },
     });
   }
 
-  findAllProducts() {
-    return this.prisma.product.findMany({ include: { supplier: true }, orderBy: { name: 'asc' } });
+  findAllProducts(companyId: string) {
+    return this.prisma.product.findMany({
+      where: { companyId },
+      include: { supplier: true },
+      orderBy: { name: 'asc' },
+    });
   }
 
-  async findLowStock() {
-    const products = await this.prisma.product.findMany({ include: { supplier: true } });
+  async findLowStock(companyId: string) {
+    const products = await this.prisma.product.findMany({
+      where: { companyId },
+      include: { supplier: true },
+    });
     return products.filter((p) => Number(p.quantity) <= Number(p.minQuantity));
   }
 
-  async findOneProduct(id: string) {
-    const product = await this.prisma.product.findUnique({
-      where: { id },
+  async findOneProduct(companyId: string, id: string) {
+    const product = await this.prisma.product.findFirst({
+      where: { id, companyId },
       include: { supplier: true, stockMovements: { orderBy: { createdAt: 'desc' }, take: 50 } },
     });
     if (!product) throw new NotFoundException('Produto não encontrado.');
     return product;
   }
 
-  async registerMovement(productId: string, dto: CreateStockMovementDto) {
-    const product = await this.findOneProduct(productId);
+  async registerMovement(companyId: string, productId: string, dto: CreateStockMovementDto) {
+    const product = await this.findOneProduct(companyId, productId);
 
     const delta = dto.type === StockMovementType.OUT ? -dto.quantity : dto.quantity;
 

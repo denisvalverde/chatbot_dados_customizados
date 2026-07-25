@@ -7,16 +7,24 @@ import { NotificationsService } from '../notifications/notifications.service';
 describe('SchedulingService', () => {
   let service: SchedulingService;
   let prisma: {
+    client: { findFirst: jest.Mock };
+    vehicle: { findFirst: jest.Mock };
     service: { findMany: jest.Mock };
-    appointment: { create: jest.Mock; findUnique: jest.Mock; update: jest.Mock };
+    employee: { findMany: jest.Mock };
+    appointment: { create: jest.Mock; findFirst: jest.Mock; update: jest.Mock };
     appointmentEmployee: { findMany: jest.Mock };
   };
   let notifications: { sendAppointmentConfirmation: jest.Mock };
 
+  const companyId = 'company-1';
+
   beforeEach(() => {
     prisma = {
+      client: { findFirst: jest.fn().mockResolvedValue({ id: 'c1', companyId }) },
+      vehicle: { findFirst: jest.fn().mockResolvedValue({ id: 'v1', companyId, clientId: 'c1' }) },
       service: { findMany: jest.fn() },
-      appointment: { create: jest.fn(), findUnique: jest.fn(), update: jest.fn() },
+      employee: { findMany: jest.fn() },
+      appointment: { create: jest.fn(), findFirst: jest.fn(), update: jest.fn() },
       appointmentEmployee: { findMany: jest.fn() },
     };
     notifications = { sendAppointmentConfirmation: jest.fn() };
@@ -40,7 +48,7 @@ describe('SchedulingService', () => {
       }),
     );
 
-    const result = await service.create({
+    const result = await service.create(companyId, {
       clientId: 'c1',
       vehicleId: 'v1',
       serviceIds: ['s1', 's2'],
@@ -54,12 +62,13 @@ describe('SchedulingService', () => {
 
   it('rejeita quando um funcionário já está alocado no horário', async () => {
     prisma.service.findMany.mockResolvedValue([{ id: 's1', estimatedMinutes: 30, price: 40 }]);
+    prisma.employee.findMany.mockResolvedValue([{ id: 'e1', companyId }]);
     prisma.appointmentEmployee.findMany.mockResolvedValue([
       { employee: { user: { name: 'João' } } },
     ]);
 
     await expect(
-      service.create({
+      service.create(companyId, {
         clientId: 'c1',
         vehicleId: 'v1',
         serviceIds: ['s1'],
@@ -73,7 +82,7 @@ describe('SchedulingService', () => {
     prisma.service.findMany.mockResolvedValue([{ id: 's1', estimatedMinutes: 30, price: 40 }]);
 
     await expect(
-      service.create({
+      service.create(companyId, {
         clientId: 'c1',
         vehicleId: 'v1',
         serviceIds: ['s1', 's2'],
@@ -83,13 +92,13 @@ describe('SchedulingService', () => {
   });
 
   it('cancela um agendamento existente', async () => {
-    prisma.appointment.findUnique.mockResolvedValue({
+    prisma.appointment.findFirst.mockResolvedValue({
       id: 'a1',
       status: AppointmentStatus.CONFIRMED,
     });
     prisma.appointment.update.mockResolvedValue({ id: 'a1', status: AppointmentStatus.CANCELLED });
 
-    const result = await service.cancel('a1', 'Cliente desistiu');
+    const result = await service.cancel(companyId, 'a1', 'Cliente desistiu');
     expect(result.status).toBe(AppointmentStatus.CANCELLED);
     expect(prisma.appointment.update).toHaveBeenCalledWith({
       where: { id: 'a1' },

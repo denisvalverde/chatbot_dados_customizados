@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { TransactionType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
@@ -7,15 +7,25 @@ import { CreateTransactionDto } from './dto/create-transaction.dto';
 export class FinancialService {
   constructor(private readonly prisma: PrismaService) {}
 
-  createTransaction(dto: CreateTransactionDto) {
+  async createTransaction(companyId: string, dto: CreateTransactionDto) {
+    if (dto.clientId) {
+      const client = await this.prisma.client.findFirst({ where: { id: dto.clientId, companyId } });
+      if (!client) throw new BadRequestException('Cliente não encontrado nesta empresa.');
+    }
+
     return this.prisma.transaction.create({
-      data: { ...dto, occurredAt: dto.occurredAt ? new Date(dto.occurredAt) : new Date() },
+      data: {
+        ...dto,
+        companyId,
+        occurredAt: dto.occurredAt ? new Date(dto.occurredAt) : new Date(),
+      },
     });
   }
 
-  findTransactions(from?: string, to?: string, type?: TransactionType) {
+  findTransactions(companyId: string, from?: string, to?: string, type?: TransactionType) {
     return this.prisma.transaction.findMany({
       where: {
+        companyId,
         type,
         occurredAt: {
           gte: from ? new Date(from) : undefined,
@@ -27,9 +37,9 @@ export class FinancialService {
     });
   }
 
-  async cashFlow(from: string, to: string) {
+  async cashFlow(companyId: string, from: string, to: string) {
     const transactions = await this.prisma.transaction.findMany({
-      where: { occurredAt: { gte: new Date(from), lte: new Date(to) } },
+      where: { companyId, occurredAt: { gte: new Date(from), lte: new Date(to) } },
     });
 
     const income = transactions
@@ -57,8 +67,8 @@ export class FinancialService {
     };
   }
 
-  async dre(from: string, to: string) {
-    const flow = await this.cashFlow(from, to);
+  async dre(companyId: string, from: string, to: string) {
+    const flow = await this.cashFlow(companyId, from, to);
     const grossRevenue = flow.income;
     const totalExpenses = flow.expense;
     const netResult = grossRevenue - totalExpenses;

@@ -18,7 +18,7 @@ describe('FinancialService', () => {
       { type: TransactionType.EXPENSE, category: 'Produtos', amount: 30 },
     ]);
 
-    const result = await service.cashFlow('2026-01-01', '2026-01-31');
+    const result = await service.cashFlow('company-1', '2026-01-01', '2026-01-31');
 
     expect(result.income).toBe(150);
     expect(result.expense).toBe(30);
@@ -37,7 +37,7 @@ describe('FinancialService', () => {
       { type: TransactionType.EXPENSE, category: 'Salários', amount: 50 },
     ]);
 
-    const dre = await service.dre('2026-01-01', '2026-01-31');
+    const dre = await service.dre('company-1', '2026-01-01', '2026-01-31');
     expect(dre.grossRevenue).toBe(200);
     expect(dre.totalExpenses).toBe(50);
     expect(dre.netResult).toBe(150);
@@ -46,7 +46,7 @@ describe('FinancialService', () => {
 
   it('retorna margem zero quando não há receita', async () => {
     prisma.transaction.findMany.mockResolvedValue([]);
-    const dre = await service.dre('2026-01-01', '2026-01-31');
+    const dre = await service.dre('company-1', '2026-01-01', '2026-01-31');
     expect(dre.marginPercent).toBe(0);
   });
 });

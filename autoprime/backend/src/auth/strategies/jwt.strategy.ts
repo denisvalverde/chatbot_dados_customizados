@@ -25,17 +25,22 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: JwtPayload): Promise<AuthenticatedUser> {
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
-      include: { employee: true, client: true },
+      include: { employee: true, client: true, company: true },
     });
 
     if (!user || !user.isActive) {
       throw new UnauthorizedException('Usuário inválido ou inativo.');
     }
 
+    if (user.company && !user.company.active) {
+      throw new UnauthorizedException('Esta empresa está desativada.');
+    }
+
     return {
       id: user.id,
       email: user.email,
       role: user.role,
+      companyId: user.companyId,
       employeeId: user.employee?.id,
       clientId: user.client?.id,
     };

@@ -1,5 +1,11 @@
 // AutoPrime - Schema de banco de dados
 // Sistema de gestão para lava-rápido / estética automotiva / detail
+//
+// Multi-tenant: cada linha de negócio (Client, Vehicle, Service, Employee,
+// Appointment, ServiceOrder, Transaction, Product, Supplier, Coupon) pertence
+// a exatamente uma Company. Um usuário pertence a exatamente uma empresa,
+// exceto o papel SUPER_ADMIN (companyId nulo), que gerencia a lista de
+// empresas mas não acessa os dados de nenhuma delas.
 
 generator client {
   provider      = "prisma-client-js"
@@ -16,6 +22,7 @@ datasource db {
 // ---------------------------------------------------------------------------
 
 enum Role {
+  SUPER_ADMIN
   ADMIN
   MANAGER
   EMPLOYEE
@@ -112,6 +119,32 @@ enum PhotoStage {
 }
 
 // ---------------------------------------------------------------------------
+// Multi-tenant
+// ---------------------------------------------------------------------------
+
+model Company {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users         User[]
+  clients       Client[]
+  vehicles      Vehicle[]
+  services      Service[]
+  employees     Employee[]
+  appointments  Appointment[]
+  serviceOrders ServiceOrder[]
+  transactions  Transaction[]
+  products      Product[]
+  suppliers     Supplier[]
+  coupons       Coupon[]
+  auditLogs     AuditLog[]
+}
+
+// ---------------------------------------------------------------------------
 // Identity & Access
 // ---------------------------------------------------------------------------
 
@@ -133,6 +166,10 @@ model User {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
+  // Nulo apenas para SUPER_ADMIN — todo outro papel pertence a uma empresa.
+  companyId         String?
+  company           Company?  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
   employee          Employee?
   client            Client?
   refreshTokens     RefreshToken[]
@@ -140,6 +177,7 @@ model User {
   notifications     Notification[]
 
   @@index([role])
+  @@index([companyId])
 }
 
 model RefreshToken {
@@ -158,6 +196,8 @@ model AuditLog {
   id         String   @id @default(uuid())
   userId     String?
   user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  companyId  String?
+  company    Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
   action     String
   entity     String
   entityId   String?
@@ -167,6 +207,7 @@ model AuditLog {
 
   @@index([entity, entityId])
   @@index([createdAt])
+  @@index([companyId])
 }
 
 // ---------------------------------------------------------------------------
@@ -177,6 +218,8 @@ model Employee {
   id              String    @id @default(uuid())
   userId          String    @unique
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyId       String
+  company         Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
   position        String
   hiredAt         DateTime  @default(now())
   commissionRate  Decimal   @default(0) @db.Decimal(5, 2)
@@ -189,6 +232,7 @@ model Employee {
   commissions     Commission[]
 
   @@index([active])
+  @@index([companyId])
 }
 
 model EmployeeShift {
@@ -219,7 +263,9 @@ model Client {
   id            String    @id @default(uuid())
   userId        String    @unique
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  document      String?   @unique // CPF
+  companyId     String
+  company       Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  document      String?   // CPF — único apenas dentro da mesma empresa
   rg            String?
   birthDate     DateTime?
   addressStreet String?
@@ -238,7 +284,8 @@ model Client {
   reviews       Review[]
   loyaltyAccount LoyaltyAccount?
 
-  @@index([document])
+  @@unique([companyId, document])
+  @@index([companyId])
 }
 
 // ---------------------------------------------------------------------------
@@ -249,6 +296,8 @@ model Vehicle {
   id          String    @id @default(uuid())
   clientId    String
   client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  companyId   String
+  company     Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
   brand       String
   model       String
   year        Int?
@@ -266,6 +315,7 @@ model Vehicle {
   serviceOrders ServiceOrder[]
 
   @@index([clientId])
+  @@index([companyId])
   @@index([plate])
 }
 
@@ -275,6 +325,8 @@ model Vehicle {
 
 model Service {
   id                  String   @id @default(uuid())
+  companyId           String
+  company             Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   name                String
   category            String
   description         String?
@@ -290,7 +342,7 @@ model Service {
   appointmentServices AppointmentService[]
   serviceOrderItems   ServiceOrderItem[]
 
-  @@index([category])
+  @@index([companyId, category])
   @@index([active])
 }
 
@@ -322,6 +374,8 @@ model ServiceProduct {
 
 model Appointment {
   id           String            @id @default(uuid())
+  companyId    String
+  company      Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
   clientId     String
   client       Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
   vehicleId    String
@@ -339,7 +393,7 @@ model Appointment {
   serviceOrder ServiceOrder?
   review       Review?
 
-  @@index([startAt, endAt])
+  @@index([companyId, startAt, endAt])
   @@index([status])
   @@index([clientId])
 }
@@ -372,6 +426,8 @@ model AppointmentEmployee {
 model ServiceOrder {
   id             String              @id @default(uuid())
   number         Int                 @unique @default(autoincrement())
+  companyId      String
+  company        Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
   appointmentId  String?             @unique
   appointment    Appointment?        @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
   clientId       String
@@ -394,7 +450,7 @@ model ServiceOrder {
   transactions   Transaction[]
   payments       Payment[]
 
-  @@index([status])
+  @@index([companyId, status])
   @@index([clientId])
 }
 
@@ -450,6 +506,8 @@ model Review {
 
 model Transaction {
   id             String          @id @default(uuid())
+  companyId      String
+  company        Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
   type           TransactionType
   category       String
   description    String?
@@ -462,7 +520,7 @@ model Transaction {
   occurredAt     DateTime        @default(now())
   createdAt      DateTime        @default(now())
 
-  @@index([type, occurredAt])
+  @@index([companyId, type, occurredAt])
   @@index([serviceOrderId])
 }
 
@@ -502,17 +560,23 @@ model Commission {
 // ---------------------------------------------------------------------------
 
 model Supplier {
-  id       String    @id @default(uuid())
-  name     String
-  phone    String?
-  email    String?
-  products Product[]
+  id        String    @id @default(uuid())
+  companyId String
+  company   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name      String
+  phone     String?
+  email     String?
+  products  Product[]
+
+  @@index([companyId])
 }
 
 model Product {
   id            String   @id @default(uuid())
+  companyId     String
+  company       Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   name          String
-  sku           String?  @unique
+  sku           String?
   barcode       String?
   unit          String   @default("un")
   quantity      Decimal  @default(0) @db.Decimal(10, 3)
@@ -526,7 +590,8 @@ model Product {
   stockMovements StockMovement[]
   usedInServices ServiceProduct[]
 
-  @@index([sku])
+  @@unique([companyId, sku])
+  @@index([companyId])
 }
 
 model StockMovement {
@@ -556,7 +621,9 @@ model LoyaltyAccount {
 
 model Coupon {
   id              String    @id @default(uuid())
-  code            String    @unique
+  companyId       String
+  company         Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  code            String
   discountPercent Decimal?  @db.Decimal(5, 2)
   discountAmount  Decimal?  @db.Decimal(10, 2)
   validFrom       DateTime
@@ -564,6 +631,9 @@ model Coupon {
   maxUses         Int?
   usedCount       Int       @default(0)
   active          Boolean   @default(true)
+
+  @@unique([companyId, code])
+  @@index([companyId])
 }
 
 // ---------------------------------------------------------------------------

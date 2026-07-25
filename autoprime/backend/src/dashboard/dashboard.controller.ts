@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import { CompanyId } from '../common/decorators/company-id.decorator';
 import { DashboardService } from './dashboard.service';
 
 @ApiTags('dashboard')
@@ -14,22 +15,30 @@ export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
   @Get('summary')
-  summary(@Query('from') from: string, @Query('to') to: string) {
-    return this.dashboardService.summary(from, to);
+  summary(@CompanyId() companyId: string, @Query('from') from: string, @Query('to') to: string) {
+    return this.dashboardService.summary(companyId, from, to);
   }
 
   @Get('top-services')
-  topServices(@Query('from') from: string, @Query('to') to: string) {
-    return this.dashboardService.topServices(from, to);
+  topServices(
+    @CompanyId() companyId: string,
+    @Query('from') from: string,
+    @Query('to') to: string,
+  ) {
+    return this.dashboardService.topServices(companyId, from, to);
   }
 
   @Get('employee-productivity')
-  employeeProductivity(@Query('from') from: string, @Query('to') to: string) {
-    return this.dashboardService.employeeProductivity(from, to);
+  employeeProductivity(
+    @CompanyId() companyId: string,
+    @Query('from') from: string,
+    @Query('to') to: string,
+  ) {
+    return this.dashboardService.employeeProductivity(companyId, from, to);
   }
 
   @Get('peak-hours')
-  peakHours(@Query('from') from: string, @Query('to') to: string) {
-    return this.dashboardService.peakHours(from, to);
+  peakHours(@CompanyId() companyId: string, @Query('from') from: string, @Query('to') to: string) {
+    return this.dashboardService.peakHours(companyId, from, to);
   }
 }

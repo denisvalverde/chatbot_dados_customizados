@@ -17,9 +17,9 @@ export class PaymentsService {
     private readonly pix: PixAdapter,
   ) {}
 
-  async createPayment(dto: CreatePaymentDto) {
-    const order = await this.prisma.serviceOrder.findUnique({
-      where: { id: dto.serviceOrderId },
+  async createPayment(companyId: string, dto: CreatePaymentDto) {
+    const order = await this.prisma.serviceOrder.findFirst({
+      where: { id: dto.serviceOrderId, companyId },
       include: { items: true },
     });
     if (!order) throw new NotFoundException('Ordem de serviço não encontrada.');
@@ -50,8 +50,11 @@ export class PaymentsService {
     });
   }
 
-  async confirmPayment(id: string) {
-    const payment = await this.prisma.payment.findUnique({ where: { id } });
+  async confirmPayment(companyId: string, id: string) {
+    const payment = await this.prisma.payment.findFirst({
+      where: { id, serviceOrder: { companyId } },
+      include: { serviceOrder: true },
+    });
     if (!payment) throw new NotFoundException('Pagamento não encontrado.');
 
     return this.prisma.$transaction(async (tx) => {
@@ -62,6 +65,7 @@ export class PaymentsService {
 
       await tx.transaction.create({
         data: {
+          companyId,
           type: TransactionType.INCOME,
           category: 'Pagamentos',
           description: `Pagamento confirmado (${payment.provider})`,
@@ -75,9 +79,9 @@ export class PaymentsService {
     });
   }
 
-  findByServiceOrder(serviceOrderId: string) {
+  findByServiceOrder(companyId: string, serviceOrderId: string) {
     return this.prisma.payment.findMany({
-      where: { serviceOrderId },
+      where: { serviceOrderId, serviceOrder: { companyId } },
       orderBy: { createdAt: 'desc' },
     });
   }

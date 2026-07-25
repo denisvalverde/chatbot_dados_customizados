@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AppointmentStatus, Role } from '@prisma/client';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import { CompanyId } from '../common/decorators/company-id.decorator';
 import { SchedulingService } from './scheduling.service';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { RescheduleAppointmentDto } from './dto/reschedule-appointment.dto';
@@ -17,37 +18,49 @@ export class SchedulingController {
 
   @Roles(Role.ADMIN, Role.MANAGER, Role.EMPLOYEE, Role.CLIENT)
   @Post()
-  create(@Body() dto: CreateAppointmentDto) {
-    return this.schedulingService.create(dto);
+  create(@CompanyId() companyId: string, @Body() dto: CreateAppointmentDto) {
+    return this.schedulingService.create(companyId, dto);
   }
 
   @Roles(Role.ADMIN, Role.MANAGER, Role.EMPLOYEE, Role.WASHER, Role.DETAILER, Role.CLIENT)
   @Get()
-  agenda(@Query('from') from: string, @Query('to') to: string) {
-    return this.schedulingService.findAgenda(from, to);
+  agenda(@CompanyId() companyId: string, @Query('from') from: string, @Query('to') to: string) {
+    return this.schedulingService.findAgenda(companyId, from, to);
   }
 
   @Roles(Role.ADMIN, Role.MANAGER, Role.EMPLOYEE, Role.WASHER, Role.DETAILER, Role.CLIENT)
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.schedulingService.findOne(id);
+  findOne(@CompanyId() companyId: string, @Param('id') id: string) {
+    return this.schedulingService.findOne(companyId, id);
   }
 
   @Roles(Role.ADMIN, Role.MANAGER, Role.EMPLOYEE, Role.CLIENT)
   @Patch(':id/reschedule')
-  reschedule(@Param('id') id: string, @Body() dto: RescheduleAppointmentDto) {
-    return this.schedulingService.reschedule(id, dto);
+  reschedule(
+    @CompanyId() companyId: string,
+    @Param('id') id: string,
+    @Body() dto: RescheduleAppointmentDto,
+  ) {
+    return this.schedulingService.reschedule(companyId, id, dto);
   }
 
   @Roles(Role.ADMIN, Role.MANAGER, Role.EMPLOYEE, Role.CLIENT)
   @Patch(':id/cancel')
-  cancel(@Param('id') id: string, @Body() dto: CancelAppointmentDto) {
-    return this.schedulingService.cancel(id, dto.reason);
+  cancel(
+    @CompanyId() companyId: string,
+    @Param('id') id: string,
+    @Body() dto: CancelAppointmentDto,
+  ) {
+    return this.schedulingService.cancel(companyId, id, dto.reason);
   }
 
   @Roles(Role.ADMIN, Role.MANAGER, Role.EMPLOYEE, Role.WASHER, Role.DETAILER)
   @Patch(':id/status/:status')
-  updateStatus(@Param('id') id: string, @Param('status') status: AppointmentStatus) {
-    return this.schedulingService.updateStatus(id, status);
+  updateStatus(
+    @CompanyId() companyId: string,
+    @Param('id') id: string,
+    @Param('status') status: AppointmentStatus,
+  ) {
+    return this.schedulingService.updateStatus(companyId, id, status);
   }
 }

@@ -1,4 +1,4 @@
-import { ConflictException, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -11,14 +11,18 @@ describe('AuthService', () => {
   let service: AuthService;
   let prisma: {
     user: { findUnique: jest.Mock; create: jest.Mock; update: jest.Mock };
+    company: { findUnique: jest.Mock };
     refreshToken: { create: jest.Mock };
   };
   let notifications: { sendWelcomeEmail: jest.Mock };
   let jwt: JwtService;
 
+  const activeCompany = { id: 'company-1', slug: 'autoprime-demo', active: true };
+
   beforeEach(() => {
     prisma = {
       user: { findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
+      company: { findUnique: jest.fn().mockResolvedValue(activeCompany) },
       refreshToken: { create: jest.fn() },
     };
     notifications = { sendWelcomeEmail: jest.fn() };
@@ -44,6 +48,7 @@ describe('AuthService', () => {
   it('rejeita registro de cliente sem aceite LGPD', async () => {
     await expect(
       service.registerClient({
+        companySlug: 'autoprime-demo',
         name: 'Teste',
         email: 'teste@teste.com',
         password: '12345678',
@@ -52,11 +57,26 @@ describe('AuthService', () => {
     ).rejects.toThrow('LGPD');
   });
 
+  it('rejeita registro quando a empresa não existe', async () => {
+    prisma.company.findUnique.mockResolvedValue(null);
+
+    await expect(
+      service.registerClient({
+        companySlug: 'empresa-inexistente',
+        name: 'Teste',
+        email: 'teste@teste.com',
+        password: '12345678',
+        lgpdConsent: 'true',
+      }),
+    ).rejects.toThrow(NotFoundException);
+  });
+
   it('rejeita registro com e-mail já existente', async () => {
     prisma.user.findUnique.mockResolvedValue({ id: 'u1' });
 
     await expect(
       service.registerClient({
+        companySlug: 'autoprime-demo',
         name: 'Teste',
         email: 'teste@teste.com',
         password: '12345678',
@@ -72,10 +92,12 @@ describe('AuthService', () => {
       email: 'teste@teste.com',
       name: 'Teste',
       role: Role.CLIENT,
+      companyId: activeCompany.id,
       client: { id: 'c1' },
     });
 
     const result = await service.registerClient({
+      companySlug: 'autoprime-demo',
       name: 'Teste',
       email: 'teste@teste.com',
       password: '12345678',
@@ -96,6 +118,7 @@ describe('AuthService', () => {
       passwordHash,
       isActive: true,
       role: Role.CLIENT,
+      companyId: activeCompany.id,
       twoFactorEnabled: false,
     });
 
@@ -112,6 +135,7 @@ describe('AuthService', () => {
       passwordHash,
       isActive: true,
       role: Role.CLIENT,
+      companyId: activeCompany.id,
       twoFactorEnabled: false,
     });
     prisma.user.update.mockResolvedValue({});
@@ -128,6 +152,7 @@ describe('AuthService', () => {
       passwordHash,
       isActive: true,
       role: Role.CLIENT,
+      companyId: activeCompany.id,
       twoFactorEnabled: true,
       twoFactorSecret: 'SECRET',
     });

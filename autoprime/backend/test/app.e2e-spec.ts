@@ -14,6 +14,7 @@ import { PrismaService } from '../src/prisma/prisma.service';
 describe('AutoPrime API (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
+  const companySlug = `e2e-empresa-${Date.now()}`;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
@@ -28,6 +29,7 @@ describe('AutoPrime API (e2e)', () => {
     await app.init();
 
     prisma = moduleRef.get(PrismaService);
+    await prisma.company.create({ data: { name: 'Empresa E2E', slug: companySlug } });
   });
 
   afterAll(async () => {
@@ -36,6 +38,7 @@ describe('AutoPrime API (e2e)', () => {
   });
 
   const client = {
+    companySlug,
     name: 'Cliente E2E',
     email: `e2e-${Date.now()}@autoprime.app`,
     password: 'Senha@1234',
@@ -90,8 +93,20 @@ describe('AutoPrime API (e2e)', () => {
       .expect(403);
   });
 
-  it('lista o catálogo de serviços publicamente', async () => {
-    await request(app.getHttpServer()).get('/api/v1/services').expect(200);
+  it('exige autenticação para listar o catálogo de serviços', async () => {
+    await request(app.getHttpServer()).get('/api/v1/services').expect(401);
+  });
+
+  it('lista o catálogo de serviços autenticado', async () => {
+    const login = await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({ email: client.email, password: client.password })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .get('/api/v1/services')
+      .set('Authorization', `Bearer ${login.body.accessToken}`)
+      .expect(200);
   });
 
   it('expõe a documentação Swagger', async () => {

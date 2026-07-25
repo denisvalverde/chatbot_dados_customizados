@@ -1,8 +1,8 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { FormEvent, Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { api, ApiError } from '@/lib/api';
 import { saveSession } from '@/lib/auth';
 import { LoginResponse } from '@/lib/types';
@@ -10,8 +10,29 @@ import { Button } from '@/components/ui/Button';
 import { Input, Label } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 
+interface CompanyInfo {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 export default function CadastroPage() {
+  return (
+    <Suspense fallback={null}>
+      <CadastroForm />
+    </Suspense>
+  );
+}
+
+function CadastroForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const companySlug = searchParams.get('empresa') ?? '';
+
+  const [company, setCompany] = useState<CompanyInfo | null>(null);
+  const [companyLoading, setCompanyLoading] = useState(true);
+  const [companyError, setCompanyError] = useState<string | null>(null);
+
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -23,9 +44,36 @@ export default function CadastroPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    if (!companySlug) {
+      setCompanyLoading(false);
+      setCompanyError(
+        'Link de cadastro inválido. Peça ao lava-rápido o link correto (com "?empresa=" na URL).',
+      );
+      return;
+    }
+
+    setCompanyLoading(true);
+    api
+      .get<CompanyInfo>(`/companies/by-slug/${companySlug}`, false)
+      .then((res) => {
+        setCompany(res);
+        setCompanyError(null);
+      })
+      .catch(() => {
+        setCompanyError('Empresa não encontrada. Verifique o link de cadastro.');
+      })
+      .finally(() => setCompanyLoading(false));
+  }, [companySlug]);
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+
+    if (!company) {
+      setError('Não foi possível identificar a empresa deste cadastro.');
+      return;
+    }
 
     if (!lgpdConsent) {
       setError('É necessário aceitar o uso dos seus dados (LGPD) para continuar.');
@@ -37,6 +85,7 @@ export default function CadastroPage() {
       const res = await api.post<LoginResponse>(
         '/auth/register',
         {
+          companySlug: company.slug,
           name: form.name,
           email: form.email,
           password: form.password,
@@ -73,84 +122,98 @@ export default function CadastroPage() {
           />
           <h1 className="text-xl font-semibold">Criar conta</h1>
           <p className="text-sm text-graphite-500 dark:text-white/50 text-center">
-            Cadastre-se para agendar seus serviços no AutoPrime
+            {company
+              ? `Cadastre-se para agendar seus serviços em ${company.name}`
+              : 'Cadastre-se para agendar seus serviços no AutoPrime'}
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div>
-            <Label htmlFor="name">Nome completo</Label>
-            <Input
-              id="name"
-              required
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              placeholder="Seu nome"
-            />
-          </div>
+        {companyLoading && (
+          <p className="text-sm text-center text-graphite-500 dark:text-white/50">
+            Verificando empresa...
+          </p>
+        )}
 
-          <div>
-            <Label htmlFor="email">E-mail</Label>
-            <Input
-              id="email"
-              type="email"
-              required
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              placeholder="voce@email.com"
-            />
-          </div>
+        {!companyLoading && companyError && (
+          <p className="text-sm text-center text-danger">{companyError}</p>
+        )}
 
-          <div>
-            <Label htmlFor="password">Senha</Label>
-            <Input
-              id="password"
-              type="password"
-              required
-              minLength={8}
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-              placeholder="Mínimo 8 caracteres"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
+        {!companyLoading && company && (
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div>
-              <Label htmlFor="phone">Telefone</Label>
+              <Label htmlFor="name">Nome completo</Label>
               <Input
-                id="phone"
-                value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                placeholder="(11) 99999-0000"
+                id="name"
+                required
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="Seu nome"
               />
             </div>
+
             <div>
-              <Label htmlFor="document">CPF</Label>
+              <Label htmlFor="email">E-mail</Label>
               <Input
-                id="document"
-                value={form.document}
-                onChange={(e) => setForm({ ...form, document: e.target.value })}
-                placeholder="000.000.000-00"
+                id="email"
+                type="email"
+                required
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                placeholder="voce@email.com"
               />
             </div>
-          </div>
 
-          <label className="flex items-start gap-2 text-xs text-graphite-500 dark:text-white/50">
-            <input
-              type="checkbox"
-              className="mt-0.5"
-              checked={lgpdConsent}
-              onChange={(e) => setLgpdConsent(e.target.checked)}
-            />
-            Aceito o uso dos meus dados pessoais para agendamento e comunicação, conforme a LGPD.
-          </label>
+            <div>
+              <Label htmlFor="password">Senha</Label>
+              <Input
+                id="password"
+                type="password"
+                required
+                minLength={8}
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                placeholder="Mínimo 8 caracteres"
+              />
+            </div>
 
-          {error && <p className="text-sm text-danger">{error}</p>}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="phone">Telefone</Label>
+                <Input
+                  id="phone"
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  placeholder="(11) 99999-0000"
+                />
+              </div>
+              <div>
+                <Label htmlFor="document">CPF</Label>
+                <Input
+                  id="document"
+                  value={form.document}
+                  onChange={(e) => setForm({ ...form, document: e.target.value })}
+                  placeholder="000.000.000-00"
+                />
+              </div>
+            </div>
 
-          <Button type="submit" disabled={loading} className="w-full mt-2">
-            {loading ? 'Criando conta...' : 'Criar conta'}
-          </Button>
-        </form>
+            <label className="flex items-start gap-2 text-xs text-graphite-500 dark:text-white/50">
+              <input
+                type="checkbox"
+                className="mt-0.5"
+                checked={lgpdConsent}
+                onChange={(e) => setLgpdConsent(e.target.checked)}
+              />
+              Aceito o uso dos meus dados pessoais para agendamento e comunicação, conforme a LGPD.
+            </label>
+
+            {error && <p className="text-sm text-danger">{error}</p>}
+
+            <Button type="submit" disabled={loading} className="w-full mt-2">
+              {loading ? 'Criando conta...' : 'Criar conta'}
+            </Button>
+          </form>
+        )}
 
         <p className="text-sm text-center text-graphite-500 dark:text-white/50 mt-6">
           Já tem conta?{' '}

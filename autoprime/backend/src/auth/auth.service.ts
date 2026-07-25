@@ -3,6 +3,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -33,6 +34,11 @@ export class AuthService {
       throw new BadRequestException('É necessário aceitar os termos de uso de dados (LGPD).');
     }
 
+    const company = await this.prisma.company.findUnique({ where: { slug: dto.companySlug } });
+    if (!company || !company.active) {
+      throw new NotFoundException('Empresa não encontrada.');
+    }
+
     const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (existing) throw new ConflictException('Já existe uma conta com este e-mail.');
 
@@ -45,8 +51,10 @@ export class AuthService {
         phone: dto.phone,
         passwordHash,
         role: Role.CLIENT,
+        companyId: company.id,
         client: {
           create: {
+            companyId: company.id,
             document: dto.document,
             lgpdConsentAt: new Date(),
           },
@@ -60,7 +68,7 @@ export class AuthService {
     return this.issueTokens(this.toAuthenticatedUser(user));
   }
 
-  async createStaff(dto: CreateStaffDto) {
+  async createStaff(dto: CreateStaffDto, companyId: string) {
     const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (existing) throw new ConflictException('Já existe uma conta com este e-mail.');
 
@@ -73,8 +81,9 @@ export class AuthService {
         phone: dto.phone,
         passwordHash,
         role: dto.role,
+        companyId,
         employee: {
-          create: { position: dto.position },
+          create: { companyId, position: dto.position },
         },
       },
       include: { employee: true },
@@ -86,10 +95,14 @@ export class AuthService {
   async login(dto: LoginDto) {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
-      include: { employee: true, client: true },
+      include: { employee: true, client: true, company: true },
     });
     if (!user || !user.isActive) {
       throw new UnauthorizedException('Credenciais inválidas.');
+    }
+
+    if (user.company && !user.company.active) {
+      throw new UnauthorizedException('Esta empresa está desativada.');
     }
 
     const passwordMatches = await bcrypt.compare(dto.password, user.passwordHash);
@@ -222,6 +235,7 @@ export class AuthService {
     id: string;
     email: string;
     role: Role;
+    companyId: string | null;
     employee?: { id: string } | null;
     client?: { id: string } | null;
   }): AuthenticatedUser {
@@ -229,6 +243,7 @@ export class AuthService {
       id: user.id,
       email: user.email,
       role: user.role,
+      companyId: user.companyId,
       employeeId: user.employee?.id,
       clientId: user.client?.id,
     };

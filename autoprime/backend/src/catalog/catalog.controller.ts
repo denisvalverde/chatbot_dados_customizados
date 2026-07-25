@@ -11,51 +11,57 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
-import { Public } from '../common/decorators/public.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import { CompanyId } from '../common/decorators/company-id.decorator';
 import { CatalogService } from './catalog.service';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
 
+const ALL_COMPANY_ROLES = [
+  Role.ADMIN,
+  Role.MANAGER,
+  Role.EMPLOYEE,
+  Role.WASHER,
+  Role.DETAILER,
+  Role.FINANCE,
+  Role.CLIENT,
+];
+
 @ApiTags('catalog')
+@ApiBearerAuth()
+@UseGuards(RolesGuard)
 @Controller('services')
 export class CatalogController {
   constructor(private readonly catalogService: CatalogService) {}
 
-  @Public()
+  @Roles(...ALL_COMPANY_ROLES)
   @Get()
-  findAll(@Query('all') all?: string) {
-    return this.catalogService.findAll(all !== 'true');
+  findAll(@CompanyId() companyId: string, @Query('all') all?: string) {
+    return this.catalogService.findAll(companyId, all !== 'true');
   }
 
-  @Public()
+  @Roles(...ALL_COMPANY_ROLES)
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.catalogService.findOne(id);
+  findOne(@CompanyId() companyId: string, @Param('id') id: string) {
+    return this.catalogService.findOne(companyId, id);
   }
 
-  @ApiBearerAuth()
-  @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.MANAGER)
   @Post()
-  create(@Body() dto: CreateServiceDto) {
-    return this.catalogService.create(dto);
+  create(@CompanyId() companyId: string, @Body() dto: CreateServiceDto) {
+    return this.catalogService.create(companyId, dto);
   }
 
-  @ApiBearerAuth()
-  @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.MANAGER)
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateServiceDto) {
-    return this.catalogService.update(id, dto);
+  update(@CompanyId() companyId: string, @Param('id') id: string, @Body() dto: UpdateServiceDto) {
+    return this.catalogService.update(companyId, id, dto);
   }
 
-  @ApiBearerAuth()
-  @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.MANAGER)
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.catalogService.deactivate(id);
+  remove(@CompanyId() companyId: string, @Param('id') id: string) {
+    return this.catalogService.deactivate(companyId, id);
   }
 }

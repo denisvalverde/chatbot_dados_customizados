@@ -2,6 +2,12 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
 
 export class RegisterClientDto {
+  @ApiProperty({
+    description: 'Slug da empresa (ex.: "autoprime-demo") em que o cliente está se cadastrando',
+  })
+  @IsString()
+  companySlug!: string;
+
   @ApiProperty()
   @IsString()
   name!: string;

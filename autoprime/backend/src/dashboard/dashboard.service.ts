@@ -6,7 +6,7 @@ import { PrismaService } from '../prisma/prisma.service';
 export class DashboardService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async summary(from: string, to: string) {
+  async summary(companyId: string, from: string, to: string) {
     const fromDate = new Date(from);
     const toDate = new Date(to);
 
@@ -18,17 +18,31 @@ export class DashboardService {
       reviews,
       newClients,
     ] = await Promise.all([
-      this.prisma.transaction.findMany({ where: { occurredAt: { gte: fromDate, lte: toDate } } }),
+      this.prisma.transaction.findMany({
+        where: { companyId, occurredAt: { gte: fromDate, lte: toDate } },
+      }),
       this.prisma.serviceOrder.findMany({
-        where: { status: ServiceOrderStatus.COMPLETED, finishedAt: { gte: fromDate, lte: toDate } },
+        where: {
+          companyId,
+          status: ServiceOrderStatus.COMPLETED,
+          finishedAt: { gte: fromDate, lte: toDate },
+        },
         include: { items: true, client: true },
       }),
       this.prisma.appointment.count({
-        where: { status: AppointmentStatus.CANCELLED, updatedAt: { gte: fromDate, lte: toDate } },
+        where: {
+          companyId,
+          status: AppointmentStatus.CANCELLED,
+          updatedAt: { gte: fromDate, lte: toDate },
+        },
       }),
-      this.prisma.appointment.count({ where: { startAt: { gte: fromDate, lte: toDate } } }),
-      this.prisma.review.findMany({ where: { createdAt: { gte: fromDate, lte: toDate } } }),
-      this.prisma.client.count({ where: { createdAt: { gte: fromDate, lte: toDate } } }),
+      this.prisma.appointment.count({
+        where: { companyId, startAt: { gte: fromDate, lte: toDate } },
+      }),
+      this.prisma.review.findMany({
+        where: { client: { companyId }, createdAt: { gte: fromDate, lte: toDate } },
+      }),
+      this.prisma.client.count({ where: { companyId, createdAt: { gte: fromDate, lte: toDate } } }),
     ]);
 
     const revenue = transactions
@@ -68,10 +82,11 @@ export class DashboardService {
     };
   }
 
-  async topServices(from: string, to: string, limit = 10) {
+  async topServices(companyId: string, from: string, to: string, limit = 10) {
     const items = await this.prisma.serviceOrderItem.findMany({
       where: {
         serviceOrder: {
+          companyId,
           status: ServiceOrderStatus.COMPLETED,
           finishedAt: { gte: new Date(from), lte: new Date(to) },
         },
@@ -96,13 +111,14 @@ export class DashboardService {
       .slice(0, limit);
   }
 
-  async employeeProductivity(from: string, to: string) {
+  async employeeProductivity(companyId: string, from: string, to: string) {
     const employees = await this.prisma.employee.findMany({
-      where: { active: true },
+      where: { companyId, active: true },
       include: {
         user: true,
         serviceOrders: {
           where: {
+            companyId,
             status: ServiceOrderStatus.COMPLETED,
             finishedAt: { gte: new Date(from), lte: new Date(to) },
           },
@@ -124,9 +140,9 @@ export class DashboardService {
       .sort((a, b) => b.ordersCompleted - a.ordersCompleted);
   }
 
-  async peakHours(from: string, to: string) {
+  async peakHours(companyId: string, from: string, to: string) {
     const appointments = await this.prisma.appointment.findMany({
-      where: { startAt: { gte: new Date(from), lte: new Date(to) } },
+      where: { companyId, startAt: { gte: new Date(from), lte: new Date(to) } },
       select: { startAt: true },
     });
 

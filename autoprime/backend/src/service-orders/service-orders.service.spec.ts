@@ -12,7 +12,7 @@ describe('ServiceOrdersService', () => {
     transaction: { create: jest.Mock };
     serviceOrder: { update: jest.Mock };
   };
-  let prisma: { serviceOrder: { findUnique: jest.Mock }; $transaction: jest.Mock };
+  let prisma: { serviceOrder: { findFirst: jest.Mock }; $transaction: jest.Mock };
 
   const order = {
     id: 'os1',
@@ -39,7 +39,7 @@ describe('ServiceOrdersService', () => {
     };
 
     prisma = {
-      serviceOrder: { findUnique: jest.fn().mockResolvedValue(order) },
+      serviceOrder: { findFirst: jest.fn().mockResolvedValue(order) },
       $transaction: jest.fn((callback) => callback(tx)),
     };
 
@@ -47,7 +47,7 @@ describe('ServiceOrdersService', () => {
   });
 
   it('ao concluir, baixa o estoque dos produtos usados e lança receita', async () => {
-    const result = await service.complete('os1');
+    const result = await service.complete('company-1', 'os1');
 
     expect(tx.product.update).toHaveBeenCalledWith({
       where: { id: 'p1' },
@@ -72,11 +72,11 @@ describe('ServiceOrdersService', () => {
   });
 
   it('não permite concluir uma OS já concluída', async () => {
-    prisma.serviceOrder.findUnique.mockResolvedValue({
+    prisma.serviceOrder.findFirst.mockResolvedValue({
       ...order,
       status: ServiceOrderStatus.COMPLETED,
     });
 
-    await expect(service.complete('os1')).rejects.toThrow(BadRequestException);
+    await expect(service.complete('company-1', 'os1')).rejects.toThrow(BadRequestException);
   });
 });

@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { CompanyId } from '../common/decorators/company-id.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Role } from '@prisma/client';
@@ -55,8 +56,8 @@ export class AuthController {
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.MANAGER)
   @Post('staff')
-  createStaff(@Body() dto: CreateStaffDto) {
-    return this.authService.createStaff(dto);
+  createStaff(@Body() dto: CreateStaffDto, @CompanyId() companyId: string) {
+    return this.authService.createStaff(dto, companyId);
   }
 
   @ApiBearerAuth()
