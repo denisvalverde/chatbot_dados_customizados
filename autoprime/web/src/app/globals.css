@@ -1,0 +1,112 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  color-scheme: light dark;
+}
+
+html,
+body {
+  /* Nenhuma tela deve rolar horizontalmente no mobile. */
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+body {
+  @apply bg-gradient-to-br from-white to-graphite-100 dark:from-graphite-950 dark:to-graphite-900 text-graphite-900 dark:text-white;
+  min-height: 100vh;
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  @apply bg-primary-500/30;
+}
+
+* {
+  scrollbar-width: thin;
+}
+
+/* Safe-area (notch / home indicator) para PWA instalado em iOS/Android. */
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.pl-safe {
+  padding-left: env(safe-area-inset-left);
+}
+.pr-safe {
+  padding-right: env(safe-area-inset-right);
+}
+
+@keyframes ap-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes ap-slide-up {
+  from {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+@keyframes ap-slide-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes ap-slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes ap-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-ap-fade-in {
+  animation: ap-fade-in 0.18s ease-out;
+}
+.animate-ap-slide-up {
+  animation: ap-slide-up 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.animate-ap-slide-in-left {
+  animation: ap-slide-in-left 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.animate-ap-slide-in-right {
+  animation: ap-slide-in-right 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.animate-ap-pulse {
+  animation: ap-pulse 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-ap-fade-in,
+  .animate-ap-slide-up,
+  .animate-ap-slide-in-left,
+  .animate-ap-slide-in-right,
+  .animate-ap-pulse {
+    animation: none !important;
+  }
+}

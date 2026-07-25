@@ -14,8 +14,8 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+/lib/
+/lib64/
 parts/
 sdist/
 var/
@@ -85,6 +85,8 @@ celerybeat-schedule
 # dotenv
 .env
 .env.*
+!.env.example
+!.env.local.example
 
 # virtualenv
 venv/
@@ -122,3 +124,15 @@ cython_debug/
 
 # JetBrains IDEs (PyCharm, etc)
 .idea/
+
+# ---------------------------------------------------------------------------
+# AutoPrime (Node/TypeScript monorepo)
+# ---------------------------------------------------------------------------
+node_modules/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+.DS_Store
+npm-debug.log*
+
