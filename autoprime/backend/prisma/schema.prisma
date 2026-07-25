@@ -148,6 +148,45 @@ model Company {
   suppliers     Supplier[]
   coupons       Coupon[]
   auditLogs     AuditLog[]
+  branches      Branch[]
+}
+
+// Unidade física de uma empresa (ex.: "AP Auto Prime Suzano"). Uma empresa
+// pode ter uma ou várias unidades. Uma unidade só aparece publicamente
+// (busca, seletor da home) quando isPublished=true, e só aceita agendamento
+// quando acceptsAppointments=true — ambos exigem os campos obrigatórios
+// preenchidos (ver BranchService.publish).
+model Branch {
+  id                  String   @id @default(uuid())
+  companyId           String
+  company             Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name                String
+  slug                String
+  city                String?
+  state               String?
+  address             String?
+  number              String?
+  complement          String?
+  district            String?
+  zipCode             String?
+  phone               String?
+  whatsapp            String?
+  email               String?
+  latitude            Float?
+  longitude           Float?
+  timezone            String   @default("America/Sao_Paulo")
+  description         String?
+  imageUrl            String?
+  isActive            Boolean  @default(true)
+  isPublished         Boolean  @default(false)
+  acceptsAppointments Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  clients Client[]
+
+  @@unique([companyId, slug])
+  @@index([companyId])
 }
 
 // ---------------------------------------------------------------------------
@@ -271,6 +310,10 @@ model Client {
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   companyId     String
   company       Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  // Unidade escolhida no cadastro. Opcional: nem toda empresa tem unidades
+  // publicadas ainda, e o cliente pode trocar de unidade depois.
+  branchId      String?
+  branch        Branch?   @relation(fields: [branchId], references: [id], onDelete: SetNull)
   document      String?   // CPF — único apenas dentro da mesma empresa
   rg            String?
   birthDate     DateTime?

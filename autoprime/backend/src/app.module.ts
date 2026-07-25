@@ -21,6 +21,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { PaymentsModule } from './payments/payments.module';
 import { AiModule } from './ai/ai.module';
 import { CompanyModule } from './company/company.module';
+import { BranchesModule } from './branches/branches.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { CompanyModule } from './company/company.module';
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
     PrismaModule,
     CompanyModule,
+    BranchesModule,
     AuthModule,
     ClientsModule,
     VehiclesModule,
