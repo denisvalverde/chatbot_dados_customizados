@@ -41,9 +41,12 @@ trabalho adicional — ver detalhes na conversa que originou este projeto):
   os adapters estão implementados com a arquitetura completa e rodam em modo
   sandbox/mock; basta configurar as chaves em `.env` para ativá-los de verdade.
 - Login social (Google/Apple) — endpoints e schema prontos, UI ainda não conectada.
-- Programas de fidelidade/cashback/cupom, multiempresa/multifilial, OCR de
-  placa/documento — schema básico existe (`LoyaltyAccount`, `Coupon`) mas a lógica de
-  negócio não foi implementada.
+- Programas de fidelidade/cashback/cupom, multifilial (múltiplas unidades por
+  empresa), OCR de placa/documento — schema básico existe (`LoyaltyAccount`,
+  `Coupon`) mas a lógica de negócio não foi implementada. **Multiempresa
+  (multi-tenant) já está implementado** desde 2026-07-25: cada empresa
+  (`Company`) tem seus próprios clientes, veículos, serviços, agenda,
+  comandas, financeiro e estoque, isolados por `companyId`.
 
 ## Como rodar localmente
 
@@ -95,6 +98,12 @@ npm run dev
 | Lavador       | lavador@autoprime.app     | Washer@123    |
 | Detalhador    | detalhador@autoprime.app  | Detailer@123  |
 | Cliente       | cliente@autoprime.app     | Cliente@123   |
+
+**Importante**: essas senhas são públicas (estão neste arquivo). O seed
+(`npm run prisma:seed`) é um comando **manual**, só para desenvolvimento/
+staging — o `Dockerfile` de produção não roda mais o seed automaticamente no
+boot. Se algum ambiente real usar a empresa "AutoPrime Demo" ou qualquer um
+desses e-mails, troque a senha imediatamente.
 
 ## Testes
 

@@ -27,4 +27,7 @@ COPY --from=build /app/prisma ./prisma
 COPY package.json tsconfig.json ./
 
 EXPOSE 3001
-CMD ["sh", "-c", "npx prisma migrate deploy && npx prisma db seed && node dist/src/main"]
+# O seed nunca deve rodar automaticamente em produção: ele recria (via upsert)
+# usuários com senha conhecida e publicada no README, incluindo um SUPER_ADMIN.
+# Rode manualmente apenas em dev/staging: `npm run prisma:seed`.
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/main"]
