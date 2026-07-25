@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { api, ApiError } from '@/lib/api';
 import { saveSession } from '@/lib/auth';
@@ -102,7 +103,14 @@ export default function LoginPage() {
           </Button>
         </form>
 
-        <p className="text-xs text-center text-graphite-400 dark:text-white/40 mt-6">
+        <p className="text-sm text-center text-graphite-500 dark:text-white/50 mt-6">
+          Ainda não tem conta?{' '}
+          <Link href="/cadastro" className="text-primary-500 font-medium hover:underline">
+            Cadastre-se
+          </Link>
+        </p>
+
+        <p className="text-xs text-center text-graphite-400 dark:text-white/40 mt-4">
           Login social (Google/Apple) e recuperação de senha disponíveis via API — integração de UI
           prevista na fase 2.
         </p>
