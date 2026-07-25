@@ -1,6 +1,6 @@
 {
-  "name": "AutoPrime — Gestão de Lava Rápido",
-  "short_name": "AutoPrime",
+  "name": "AP Auto Prime — Gestão de Lava Rápido",
+  "short_name": "AP Auto Prime",
   "description": "Painel de gestão para lava-rápido, estética automotiva e detail.",
   "start_url": "/dashboard",
   "id": "/dashboard",

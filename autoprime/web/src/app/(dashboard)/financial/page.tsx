@@ -9,7 +9,7 @@ import { Card } from '@/components/ui/Card';
 import { Input, Label, Select } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { Table, Thead, Th, Tr, Td } from '@/components/ui/Table';
-import { StatCard } from '@/components/ui/StatCard';
+import { MetricCard } from '@/components/ui/MetricCard';
 import { Badge } from '@/components/ui/Badge';
 
 const currency = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -69,9 +69,9 @@ export default function FinancialPage() {
 
       {cashFlow && (
         <div className="grid grid-cols-3 gap-4 mb-6">
-          <StatCard label="Receita" value={currency(cashFlow.income)} tone="success" />
-          <StatCard label="Despesa" value={currency(cashFlow.expense)} tone="danger" />
-          <StatCard label="Lucro" value={currency(cashFlow.profit)} tone="primary" />
+          <MetricCard label="Receita" value={currency(cashFlow.income)} tone="success" />
+          <MetricCard label="Despesa" value={currency(cashFlow.expense)} tone="danger" />
+          <MetricCard label="Lucro" value={currency(cashFlow.profit)} tone="primary" />
         </div>
       )}
 
