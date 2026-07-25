@@ -15,6 +15,7 @@ describe('AutoPrime API (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   const companySlug = `e2e-empresa-${Date.now()}`;
+  const branchSlug = 'unidade-e2e';
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
@@ -29,7 +30,22 @@ describe('AutoPrime API (e2e)', () => {
     await app.init();
 
     prisma = moduleRef.get(PrismaService);
-    await prisma.company.create({ data: { name: 'Empresa E2E', slug: companySlug } });
+    const company = await prisma.company.create({ data: { name: 'Empresa E2E', slug: companySlug } });
+    await prisma.branch.create({
+      data: {
+        companyId: company.id,
+        name: 'Unidade E2E',
+        slug: branchSlug,
+        address: 'Rua de Teste',
+        number: '123',
+        district: 'Centro',
+        city: 'São Paulo',
+        state: 'SP',
+        zipCode: '00000-000',
+        phone: '11999999999',
+        isPublished: true,
+      },
+    });
   });
 
   afterAll(async () => {
@@ -111,5 +127,53 @@ describe('AutoPrime API (e2e)', () => {
 
   it('expõe a documentação Swagger', async () => {
     await request(app.getHttpServer()).get('/api/docs').expect(200);
+  });
+
+  it('lista empresas ativas publicamente (seletor do cadastro sem ?empresa=)', async () => {
+    const res = await request(app.getHttpServer()).get('/api/v1/companies/public').expect(200);
+
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(res.body.some((c: { slug: string }) => c.slug === companySlug)).toBe(true);
+    // Nunca deve vazar dados sensíveis na listagem pública.
+    expect(res.body[0]).not.toHaveProperty('active');
+  });
+
+  it('lista só unidades publicadas de uma empresa publicamente', async () => {
+    const res = await request(app.getHttpServer())
+      .get(`/api/v1/companies/${companySlug}/branches`)
+      .expect(200);
+
+    expect(res.body).toHaveLength(1);
+    expect(res.body[0].slug).toBe(branchSlug);
+  });
+
+  it('registra cliente já escolhendo uma unidade publicada (link com ?empresa=&unidade=)', async () => {
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/auth/register')
+      .send({
+        companySlug,
+        branchSlug,
+        name: 'Cliente Com Unidade',
+        email: `e2e-branch-${Date.now()}@autoprime.app`,
+        password: 'Senha@1234',
+        lgpdConsent: 'true',
+      })
+      .expect(201);
+
+    expect(res.body.accessToken).toBeDefined();
+  });
+
+  it('rejeita branchSlug de unidade inexistente/não publicada', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/register')
+      .send({
+        companySlug,
+        branchSlug: 'unidade-que-nao-existe',
+        name: 'Cliente Inválido',
+        email: `e2e-branch-invalida-${Date.now()}@autoprime.app`,
+        password: 'Senha@1234',
+        lgpdConsent: 'true',
+      })
+      .expect(404);
   });
 });

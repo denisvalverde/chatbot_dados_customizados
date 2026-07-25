@@ -39,6 +39,15 @@ export class AuthService {
       throw new NotFoundException('Empresa não encontrada.');
     }
 
+    let branchId: string | undefined;
+    if (dto.branchSlug) {
+      const branch = await this.prisma.branch.findFirst({
+        where: { companyId: company.id, slug: dto.branchSlug, isPublished: true, isActive: true },
+      });
+      if (!branch) throw new NotFoundException('Unidade não encontrada.');
+      branchId = branch.id;
+    }
+
     const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (existing) throw new ConflictException('Já existe uma conta com este e-mail.');
 
@@ -55,6 +64,7 @@ export class AuthService {
         client: {
           create: {
             companyId: company.id,
+            branchId,
             document: dto.document,
             lgpdConsentAt: new Date(),
           },

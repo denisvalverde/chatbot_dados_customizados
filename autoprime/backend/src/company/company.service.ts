@@ -41,6 +41,19 @@ export class CompanyService {
     return this.prisma.company.findMany({ orderBy: { createdAt: 'desc' } });
   }
 
+  /**
+   * Listagem pública para o seletor de empresa no cadastro/home — só campos
+   * seguros, só empresas ativas.
+   */
+  async findAllPublic() {
+    const companies = await this.prisma.company.findMany({
+      where: { active: true },
+      select: { id: true, name: true, slug: true },
+      orderBy: { name: 'asc' },
+    });
+    return companies;
+  }
+
   async findBySlug(slug: string) {
     const company = await this.prisma.company.findUnique({ where: { slug } });
     if (!company || !company.active) {
@@ -65,5 +78,29 @@ export class CompanyService {
     const company = await this.prisma.company.findUnique({ where: { id } });
     if (!company) throw new NotFoundException('Empresa não encontrada.');
     return this.prisma.company.update({ where: { id }, data: { timezone } });
+  }
+
+  /**
+   * Serviços ativos de uma empresa, para a home pública e o cadastro — só
+   * campos seguros para exibição a visitantes não autenticados (sem custo,
+   * fornecedor etc.).
+   */
+  async findPublicServicesBySlug(slug: string) {
+    const company = await this.prisma.company.findUnique({ where: { slug } });
+    if (!company || !company.active) return [];
+
+    return this.prisma.service.findMany({
+      where: { companyId: company.id, active: true },
+      select: {
+        id: true,
+        name: true,
+        category: true,
+        description: true,
+        price: true,
+        estimatedMinutes: true,
+        photos: true,
+      },
+      orderBy: { name: 'asc' },
+    });
   }
 }

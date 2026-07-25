@@ -8,6 +8,14 @@ export class RegisterClientDto {
   @IsString()
   companySlug!: string;
 
+  @ApiProperty({
+    required: false,
+    description: 'Slug da unidade escolhida (ex.: "suzano"). Opcional.',
+  })
+  @IsOptional()
+  @IsString()
+  branchSlug?: string;
+
   @ApiProperty()
   @IsString()
   name!: string;

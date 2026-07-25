@@ -15,9 +15,21 @@ export class CompanyController {
   constructor(private readonly companyService: CompanyService) {}
 
   @Public()
+  @Get('public')
+  findAllPublic() {
+    return this.companyService.findAllPublic();
+  }
+
+  @Public()
   @Get('by-slug/:slug')
   findBySlug(@Param('slug') slug: string) {
     return this.companyService.findBySlug(slug);
+  }
+
+  @Public()
+  @Get(':slug/services')
+  findPublicServices(@Param('slug') slug: string) {
+    return this.companyService.findPublicServicesBySlug(slug);
   }
 
   @ApiBearerAuth()
