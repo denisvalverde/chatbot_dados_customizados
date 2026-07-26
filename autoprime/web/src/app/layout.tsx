@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
-import { ServiceWorkerRegistration } from './sw-registration';
 import { ToastProvider } from '@/components/ui/Toast';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
@@ -39,14 +38,23 @@ const THEME_SCRIPT = `
 })();
 `;
 
+// Registrado de forma síncrona no <head>, sem esperar o React hidratar —
+// ferramentas de análise de PWA (ex.: PWABuilder) leem o HTML inicial e não
+// detectam um registro feito só depois via useEffect.
+const SW_SCRIPT = `
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(function () {});
+}
+`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR" className={inter.variable} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: SW_SCRIPT }} />
       </head>
       <body className="font-sans antialiased">
-        <ServiceWorkerRegistration />
         <ToastProvider>{children}</ToastProvider>
       </body>
     </html>
