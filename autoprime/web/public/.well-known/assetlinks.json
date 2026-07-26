@@ -3,9 +3,9 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "SUBSTITUIR_PELO_PACKAGE_NAME_REAL",
+      "package_name": "app.railway.up.truthful_empathy_production_e4ef.twa",
       "sha256_cert_fingerprints": [
-        "SUBSTITUIR_PELO_FINGERPRINT_SHA256_REAL"
+        "94:64:0B:5E:ED:BE:3E:3E:7D:F3:0B:DF:6B:CD:2B:49:F9:83:5C:84:40:7F:14:81:08:79:4C:41:43:23:CD:83"
       ]
     }
   }

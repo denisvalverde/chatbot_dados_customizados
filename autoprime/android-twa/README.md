@@ -123,8 +123,18 @@ ação irreversível de publicação pública que só você deve confirmar.
 - [x] Screenshots (mobile e desktop)
 - [x] Política de privacidade (`/privacidade`)
 - [x] Feature graphic (`feature-graphic.png`)
-- [ ] Package name definitivo (decisão sua)
-- [ ] Chave de assinatura (gerada por você no PWABuilder — nunca por mim)
-- [ ] `assetlinks.json` preenchido com o fingerprint real
+- [x] Pacote `.aab` gerado no PWABuilder — package name
+      `app.railway.up.truthful_empathy_production_e4ef.twa`
+- [x] Chave de assinatura gerada (guardada por você — `signing.keystore`)
+- [x] `assetlinks.json` preenchido com o fingerprint real
 - [ ] Conta de desenvolvedor Google Play
+- [ ] Teste interno do `.aab` no seu celular
+- [ ] Preencher ficha da loja e formulário de segurança de dados
 - [ ] Envio para revisão (ação manual sua)
+
+> Nota sobre o package name: como ele foi gerado a partir do domínio
+> temporário do Railway (`truthful-empathy-production-e4ef...`), ficou com
+> esse nome pouco legível. Isso não aparece pro usuário final (ele só vê o
+> nome "AP Auto Prime" e o ícone), então não é um problema — mas se um dia
+> você trocar para um domínio próprio, o pacote e os asset links precisam
+> ser gerados de novo com o novo domínio.
