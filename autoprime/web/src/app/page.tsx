@@ -273,6 +273,7 @@ export default function HomePage() {
           <div className="flex items-center gap-4">
             <Link href="/login" className="hover:text-primary-500">Entrar</Link>
             <Link href="/cadastro" className="hover:text-primary-500">Criar conta</Link>
+            <Link href="/privacidade" className="hover:text-primary-500">Privacidade</Link>
           </div>
           <span>© {new Date().getFullYear()} AP Auto Prime. Todos os direitos reservados.</span>
         </div>
