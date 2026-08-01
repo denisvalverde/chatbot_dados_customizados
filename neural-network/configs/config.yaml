@@ -1,0 +1,55 @@
+# Configuracao central do projeto.
+# Todos os caminhos sao relativos a raiz do projeto (neural-network/).
+
+seed: 42
+
+paths:
+  data_raw: "data/raw"
+  data_processed: "data/processed"
+  data_sample: "data/sample"
+  models_dir: "artifacts/models"
+  metrics_dir: "artifacts/metrics"
+  plots_dir: "artifacts/plots"
+
+data:
+  text_column: "texto"
+  label_column: "categoria"
+  test_size: 0.15
+  val_size: 0.15
+  min_text_length: 5
+  max_text_length: 1000
+  drop_duplicates: true
+
+features:
+  max_features: 5000
+  ngram_range: [1, 2]
+  min_df: 2
+  sublinear_tf: true
+
+model:
+  hidden_dims: [256, 128]
+  dropout: 0.3
+  batch_norm: true
+
+training:
+  batch_size: 64
+  epochs: 30
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  early_stopping_patience: 5
+  gradient_clip_norm: 1.0
+  scheduler_factor: 0.5
+  scheduler_patience: 2
+  mixed_precision: true   # usado apenas quando ha GPU CUDA compativel
+  num_workers: 0
+
+api:
+  host: "0.0.0.0"
+  port: 8000
+
+mlflow:
+  enabled: false           # requer 'pip install mlflow' (extra opcional)
+  tracking_uri: "mlruns"
+  experiment_name: "ticket-classifier"
+
+model_version: "1.0.0"

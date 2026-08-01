@@ -1,0 +1,35 @@
+services:
+  api:
+    build: .
+    image: ticket-classifier:latest
+    container_name: ticket-classifier-api
+    ports:
+      - "${API_PORT:-8000}:8000"
+    environment:
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - MODELS_DIR=/app/artifacts/models
+    volumes:
+      - ./artifacts:/app/artifacts
+      - ./data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+    restart: unless-stopped
+
+  # Executa o treinamento em container:
+  #   docker compose run --rm train
+  train:
+    build: .
+    image: ticket-classifier:latest
+    profiles: ["train"]
+    environment:
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - ./artifacts:/app/artifacts
+      - ./data:/app/data
+    command: >
+      sh -c "python scripts/generate_sample_data.py --rows 3000 &&
+             python scripts/train.py --data data/sample/tickets.csv"
