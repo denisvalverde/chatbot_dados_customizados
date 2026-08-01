@@ -67,19 +67,59 @@ neural-network/
 
 ## Instalacao
 
-Todos os comandos abaixo foram validados a partir do diretorio `neural-network/`.
+Antes de tudo, clone o repositorio e entre na pasta do projeto — todos os comandos
+deste README devem ser executados a partir do diretorio `neural-network/`.
+
+### Linux / macOS (bash)
 
 ```bash
+git clone https://github.com/denisvalverde/chatbot_dados_customizados.git
+cd chatbot_dados_customizados
+git checkout claude/neural-network-template-f51unn   # ate o merge na branch principal
 cd neural-network
 
 # Ambiente virtual
 python3 -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
+source .venv/bin/activate
 
 # Dependencias (CPU)
 pip install torch                  # ou: pip install torch --index-url https://download.pytorch.org/whl/cpu
 pip install -r requirements.txt
 ```
+
+### Windows (PowerShell)
+
+O PowerShell 5.1 nao aceita `&&`; execute um comando por linha (ou separe com `;`).
+Use `\` nos caminhos e ative o venv com o script `Activate.ps1`.
+
+```powershell
+# Escolha uma pasta de trabalho (NAO use C:\Windows\system32)
+cd $HOME\Documents
+
+git clone https://github.com/denisvalverde/chatbot_dados_customizados.git
+cd chatbot_dados_customizados
+git checkout claude/neural-network-template-f51unn   # ate o merge na branch principal
+cd neural-network
+
+# Ambiente virtual
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+
+# Se aparecer erro de politica de execucao ao ativar:
+#   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+# e ative novamente.
+
+# Dependencias (CPU)
+pip install torch
+pip install -r requirements.txt
+```
+
+> Dica (Windows): se `python` abrir a Microsoft Store em vez de executar, instale o
+> Python de https://www.python.org/downloads/ (3.11+) marcando "Add python.exe to PATH",
+> ou use `py -3.12` no lugar de `python`.
+
+Depois da instalacao, os demais comandos sao iguais em todos os sistemas — no Windows,
+troque `/` por `\` nos caminhos (ex.: `python scripts\train.py --data data\sample\tickets.csv`).
 
 ## Estrutura dos dados
 
