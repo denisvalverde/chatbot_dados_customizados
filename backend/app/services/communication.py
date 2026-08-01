@@ -7,7 +7,7 @@ para enriquecimento — nunca para inventar fatos.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from pydantic import BaseModel, Field
 
@@ -70,7 +70,7 @@ def _simplify_for_audience(text: str, audience: Audience) -> str:
 def generate_message(req: CommunicationRequest) -> dict:
     """Gera a comunicacao solicitada. Retorna corpo + metadados."""
     ref = f" [{req.ticket_ref}]" if req.ticket_ref else ""
-    now = datetime.now(timezone.utc).strftime("%d/%m/%Y %H:%M UTC")
+    now = datetime.now(UTC).strftime("%d/%m/%Y %H:%M UTC")
     g = _greeting(req.audience, req.customer)
     c = _closing(req.audience)
     body: str

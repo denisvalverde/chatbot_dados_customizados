@@ -17,7 +17,11 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W", "UP"]
-ignore = ["E501"]
+# E501: line length ja controlado pelo formatter/revisao manual.
+# UP042: manter (str, Enum) em vez de StrEnum — serializacao Pydantic v2
+# estavel e testada; StrEnum tem reprs diferentes e exigiria revalidar
+# todos os contratos JSON da API.
+ignore = ["E501", "UP042"]
 
 [tool.coverage.run]
 source = ["app"]

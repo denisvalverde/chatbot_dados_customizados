@@ -50,7 +50,7 @@ _RE = {
     "fqdn": re.compile(r"\b([a-z][\w-]{2,30}\.(?:[\w-]+\.)+(?:com|net|org|br|io|cloud|local|lan))\b", re.I),
     "data": re.compile(r"\b(\d{1,2}/\d{1,2}/\d{2,4}|\d{4}-\d{2}-\d{2})\b"),
     "hora": re.compile(r"\b(\d{1,2}:\d{2}(?::\d{2})?)\b"),
-    "disco": re.compile(r"\b(/dev/(?:sd[a-z]+\d*|nvme\d+n\d+(?:p\d+)?|vd[a-z]+\d*)|slot\s*\d+)\b", re.I),
+    "disco": re.compile(r"(/dev/(?:sd[a-z]+\d*|nvme\d+n\d+(?:p\d+)?|vd[a-z]+\d*)|\bslot\s*\d+\b)", re.I),
     "raid": re.compile(r"\braid[\s-]*(0|1|5|6|10|50|60)\b", re.I),
     "bucket": re.compile(r"\bbucket[\s#:-]*([a-z0-9][a-z0-9.-]{2,62})\b", re.I),
     "endpoint": re.compile(r"\bhttps?://[\w.-]+(?::\d+)?(?:/[\w./-]*)?\b", re.I),
@@ -64,11 +64,11 @@ _RE = {
 }
 
 _COMMAND_HINTS = re.compile(
-    r"^\s*(?:\$|#|>)?\s*((?:sudo\s+)?(?:smartctl|megacli|storcli|perccli|dmesg|journalctl|"
+    r"(?:^|[\s:])(?:[$#>]\s*)?((?:sudo\s+)?(?:smartctl|megacli|storcli|perccli|dmesg|journalctl|"
     r"systemctl|df|du|free|top|htop|iostat|vmstat|sar|ping|traceroute|mtr|ip|ss|netstat|"
     r"ethtool|qm|pct|pvesm|pvecm|virsh|lsblk|fdisk|mdadm|zpool|zfs|aws|rclone|s3cmd|"
     r"proxmox-backup-client|ipmitool|racadm|hponcfg|curl|dig|nslookup|uptime|lscpu|"
-    r"lsmem|lspci|badblocks|fio|nc|tcpdump)\b[^\n]{0,200})",
+    r"lsmem|lspci|badblocks|fio|nc|tcpdump)\b[^\n]{0,80})",
     re.I | re.M,
 )
 

@@ -8,7 +8,7 @@ um AVISO estruturado exigindo backup, janela, rollback e confirmacao.
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from app.domain.enums import Category, CommandRisk
 

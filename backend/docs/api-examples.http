@@ -1,0 +1,174 @@
+### Coleção de exemplos da API — compatível com a extensão REST Client (VS Code)
+### ou pode ser adaptada manualmente para curl/Postman/Insomnia.
+### Ajuste @baseUrl e rode "seed" antes (python scripts/seed.py) para ter um usuário admin.
+
+@baseUrl = http://localhost:8000
+@email = admin@example.com
+@password = TROQUE_PELA_SENHA_DO_SEED
+
+### 1. Health / readiness / métricas
+GET {{baseUrl}}/health
+
+###
+GET {{baseUrl}}/ready
+
+###
+GET {{baseUrl}}/metrics
+
+### 2. Login (copie o access_token da resposta para @token abaixo)
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+###
+@token = COLE_AQUI_O_ACCESS_TOKEN
+
+### 3. Classificação híbrida (regras + rede + similaridade)
+POST {{baseUrl}}/api/v1/classify
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "text": "virtual disk degraded na controladora megaraid do servidor srv-db02, storcli mostra pd failed no slot 4"
+}
+
+### 4. Extração de entidades
+POST {{baseUrl}}/api/v1/extract-entities
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "text": "chamado 123456: servidor srv-db02 (10.20.30.40) vlan 120, erro http 503, disco /dev/sdb, raid 5 degraded"
+}
+
+### 5. Criar ticket (classificado automaticamente)
+POST {{baseUrl}}/api/v1/tickets
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "RAID degraded no servidor srv-db02",
+  "description": "storcli mostra virtual disk degraded, pd failed no slot 4 da controladora megaraid",
+  "customer": "Cliente Exemplo",
+  "evidences": [
+    {"type": "saida_comando", "content": "VD0 Dgrd, PD 252:4 Flt", "source": "storcli /c0 show all"}
+  ]
+}
+
+### 6. Listar tickets
+GET {{baseUrl}}/api/v1/tickets?limit=20
+Authorization: Bearer {{token}}
+
+### 7. Estatísticas (dashboard)
+GET {{baseUrl}}/api/v1/tickets/stats
+Authorization: Bearer {{token}}
+
+### 8. Análise técnica completa (anti-alucinação)
+POST {{baseUrl}}/api/v1/analyze
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "Servidor fora do ar",
+  "description": "servidor srv-web01 10.0.0.5 fora do ar desde 14:30, ilo mostra evento de fonte em falha"
+}
+
+### 9. Comandos de diagnóstico seguros
+POST {{baseUrl}}/api/v1/generate-commands
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "category": "raid"
+}
+
+### 10. Geração de comunicação (resposta ao cliente)
+POST {{baseUrl}}/api/v1/generate-response
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "kind": "resposta_inicial",
+  "audience": "cliente_nao_tecnico",
+  "customer": "ACME Ltda",
+  "subject": "Servidor indisponível",
+  "missing_info": ["Horário exato do início da falha", "Se houve alteração recente no ambiente"]
+}
+
+### 11. GMUD
+POST {{baseUrl}}/api/v1/generate-gmud
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "kind": "gmud",
+  "summary": "Troca de disco no slot 4 da controladora RAID do srv-db02",
+  "next_steps": ["Colocar disco em modo de manutenção", "Substituir disco físico", "Acompanhar rebuild"],
+  "risks": ["Rebuild pode degradar performance durante algumas horas"]
+}
+
+### 12. RCA
+POST {{baseUrl}}/api/v1/generate-rca
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "kind": "rca",
+  "summary": "Indisponibilidade por falha de fonte redundante"
+}
+
+### 13. Base de conhecimento — ingestão
+POST {{baseUrl}}/api/v1/knowledge/documents
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "Procedimento: rebuild de RAID travado",
+  "content": "Se o rebuild ficar parado por mais de 2h, verificar erros SMART no disco substituto antes de reiniciar a controladora.",
+  "document_type": "procedimento",
+  "category": "raid",
+  "technology": ["megaraid"],
+  "approved": true,
+  "success_score": 0.85
+}
+
+### 14. Base de conhecimento — busca semântica
+GET {{baseUrl}}/api/v1/knowledge/search?q=rebuild travado raid&limit=5
+Authorization: Bearer {{token}}
+
+### 15. Feedback sobre uma análise (use o analysis_id retornado no passo 8)
+POST {{baseUrl}}/api/v1/feedback
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "analysis_id": 1,
+  "rating": 5,
+  "accepted": true,
+  "comments": "Diagnóstico correto, procedimento seguido."
+}
+
+### 16. Modelos — listar / status ativo
+GET {{baseUrl}}/api/v1/models
+Authorization: Bearer {{token}}
+
+###
+GET {{baseUrl}}/api/v1/models/active
+Authorization: Bearer {{token}}
+
+### 17. Treinar a rede neural (sincronamente; pode levar alguns segundos)
+POST {{baseUrl}}/api/v1/models/train
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "epochs": 20
+}
+
+### 18. Avaliar (métricas do último treino)
+POST {{baseUrl}}/api/v1/models/evaluate
+Authorization: Bearer {{token}}

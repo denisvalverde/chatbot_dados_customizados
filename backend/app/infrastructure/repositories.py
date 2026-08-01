@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import hashlib
-from datetime import datetime, timezone
-from typing import Any, Sequence
+from collections.abc import Sequence
+from datetime import UTC, datetime
+from typing import Any
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -80,7 +81,7 @@ class TicketRepository:
         for key, value in data.items():
             setattr(ticket, key, value)
         if data.get("status") in {"resolvido", "encerrado"} and ticket.resolved_at is None:
-            ticket.resolved_at = datetime.now(timezone.utc)
+            ticket.resolved_at = datetime.now(UTC)
         self.db.commit()
         self.db.refresh(ticket)
         return ticket
@@ -235,7 +236,7 @@ class ModelVersionRepository:
             if other.status == "deployed":
                 other.status = "archived"
         model.status = "deployed"
-        model.deployed_at = datetime.now(timezone.utc)
+        model.deployed_at = datetime.now(UTC)
         self.db.commit()
         self.db.refresh(model)
         return model

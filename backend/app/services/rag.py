@@ -7,7 +7,7 @@ configurado ou fallback local) -> validacao e avaliacao de confianca.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy.orm import Session
@@ -79,7 +79,7 @@ def rerank(
     score = 0.55*similaridade + 0.15*categoria + 0.10*tecnologia
           + 0.10*sucesso_da_solucao + 0.05*recencia + 0.05*aprovado
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     ranked: list[dict[str, Any]] = []
     for hit in hits:
         doc = hit.document
@@ -91,7 +91,7 @@ def rerank(
         prod_bonus = 0.05 if (product and doc.product and product.lower() in doc.product.lower()) else 0.0
         created = doc.created_at
         if created is not None and created.tzinfo is None:
-            created = created.replace(tzinfo=timezone.utc)
+            created = created.replace(tzinfo=UTC)
         age_days = (now - created).days if created else 3650
         recency = max(0.0, 1.0 - age_days / 730.0)  # decai em ~2 anos
         score = (

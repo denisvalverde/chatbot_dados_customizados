@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import time
 from collections import defaultdict, deque
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
 
 from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError

@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 import math
 import random
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -80,6 +80,29 @@ def _encode_labels(
     return labels
 
 
+def _safe_split(
+    indices: np.ndarray, labels: np.ndarray, test_size: float, seed: int
+) -> tuple[np.ndarray, np.ndarray]:
+    """Split estratificado com fallback automatico.
+
+    Datasets pequenos com muitas classes podem deixar uma classe com menos
+    membros do que o split exige (StratifiedShuffleSplit requer >=2 por
+    classe). Neste caso, cai para split nao estratificado em vez de falhar,
+    o que e aceitavel para datasets sinteticos/pequenos de bootstrap.
+    """
+    counts = np.bincount(labels)
+    min_count = counts[counts > 0].min() if counts.any() else 0
+    if min_count >= 2:
+        return train_test_split(
+            indices, test_size=test_size, random_state=seed, stratify=labels
+        )
+    logger.warning(
+        "Split nao estratificado: classe com apenas %d exemplo(s) no subconjunto "
+        "(dataset pequeno). Considere aumentar o volume de dados.", min_count,
+    )
+    return train_test_split(indices, test_size=test_size, random_state=seed)
+
+
 def _class_weights(values: np.ndarray, num_classes: int) -> torch.Tensor:
     counts = np.bincount(values, minlength=num_classes).astype(np.float64)
     weights = np.where(counts > 0, 1.0 / np.maximum(counts, 1), 0.0)
@@ -115,13 +138,10 @@ def train_model(
     features = embedder.embed([e.texto for e in examples])
     labels = _encode_labels(examples, vocab)
 
-    idx_train, idx_temp = train_test_split(
-        np.arange(len(examples)), test_size=0.3, random_state=seed,
-        stratify=labels["categoria"],
-    )
-    idx_val, idx_test = train_test_split(
-        idx_temp, test_size=0.5, random_state=seed,
-        stratify=labels["categoria"][idx_temp],
+    all_idx = np.arange(len(examples))
+    idx_train, idx_temp = _safe_split(all_idx, labels["categoria"], test_size=0.3, seed=seed)
+    idx_val, idx_test = _safe_split(
+        idx_temp, labels["categoria"][idx_temp], test_size=0.5, seed=seed
     )
 
     def subset(indices: np.ndarray) -> TicketDataset:
@@ -189,7 +209,7 @@ def train_model(
                     "head_sizes": head_sizes,
                     "vocab": vocab,
                     "embedder": embedder.name,
-                    "trained_at": datetime.now(timezone.utc).isoformat(),
+                    "trained_at": datetime.now(UTC).isoformat(),
                     "dataset": str(dataset_path),
                     "synthetic_examples": synthetic,
                     "total_examples": len(examples),

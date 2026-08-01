@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -11,7 +11,7 @@ from app.infrastructure.database import Base
 
 
 def utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class User(Base):
@@ -50,8 +50,8 @@ class Ticket(Base):
     )
     resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    evidences: Mapped[list["Evidence"]] = relationship(back_populates="ticket")
-    analyses: Mapped[list["Analysis"]] = relationship(back_populates="ticket")
+    evidences: Mapped[list[Evidence]] = relationship(back_populates="ticket")
+    analyses: Mapped[list[Analysis]] = relationship(back_populates="ticket")
 
 
 class Evidence(Base):
@@ -66,7 +66,7 @@ class Evidence(Base):
     hash: Mapped[str] = mapped_column(String(64), default="")
     meta: Mapped[dict] = mapped_column("metadata", JSON, default=dict)
 
-    ticket: Mapped["Ticket"] = relationship(back_populates="evidences")
+    ticket: Mapped[Ticket] = relationship(back_populates="evidences")
 
 
 class Analysis(Base):
@@ -86,7 +86,7 @@ class Analysis(Base):
     model_version: Mapped[str] = mapped_column(String(64), default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
-    ticket: Mapped["Ticket"] = relationship(back_populates="analyses")
+    ticket: Mapped[Ticket] = relationship(back_populates="analyses")
 
 
 class KnowledgeDocument(Base):

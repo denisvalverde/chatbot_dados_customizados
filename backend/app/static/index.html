@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plataforma IA — Suporte/SRE</title>
+<link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+<div id="login-view" class="center-screen hidden">
+  <form id="login-form" class="card login-card">
+    <h1>Plataforma IA <span>Suporte / SRE</span></h1>
+    <label>E-mail <input type="email" id="login-email" required autocomplete="username"></label>
+    <label>Senha <input type="password" id="login-password" required autocomplete="current-password"></label>
+    <button type="submit" class="btn primary">Entrar</button>
+    <p id="login-error" class="error hidden"></p>
+  </form>
+</div>
+
+<div id="app-view" class="hidden">
+  <header>
+    <strong>Plataforma IA — Suporte/SRE</strong>
+    <nav>
+      <button data-page="dashboard" class="active">Dashboard</button>
+      <button data-page="analyze">Nova análise</button>
+      <button data-page="tickets">Chamados</button>
+      <button data-page="knowledge">Base de conhecimento</button>
+      <button data-page="ml">Machine Learning</button>
+    </nav>
+    <span id="user-info"></span>
+    <button id="logout" class="btn small">Sair</button>
+  </header>
+
+  <main>
+    <section id="page-dashboard" class="page">
+      <h2>Dashboard</h2>
+      <div class="cards" id="dash-cards"></div>
+      <div class="grid-2">
+        <div class="card"><h3>Chamados por categoria</h3><div id="dash-categories"></div></div>
+        <div class="card"><h3>Chamados por severidade</h3><div id="dash-severities"></div></div>
+      </div>
+    </section>
+
+    <section id="page-analyze" class="page hidden">
+      <h2>Nova análise</h2>
+      <form id="analyze-form" class="card">
+        <div class="grid-2">
+          <label>Ticket (nº externo, opcional) <input id="an-external"></label>
+          <label>Cliente <input id="an-customer"></label>
+        </div>
+        <label>Título <input id="an-title" required minlength="5"></label>
+        <label>Descrição / relato / logs colados
+          <textarea id="an-description" rows="8" required minlength="10"
+            placeholder="Descreva o problema. Cole trechos de logs, comandos executados e mensagens de erro."></textarea>
+        </label>
+        <div class="grid-2">
+          <label>Evidência (log/saída de comando, opcional)
+            <textarea id="an-evidence" rows="4" placeholder="Cole aqui uma evidência objetiva"></textarea>
+          </label>
+          <label>Tipo da evidência
+            <select id="an-evidence-type">
+              <option value="log">log</option>
+              <option value="saida_comando">saída de comando</option>
+              <option value="metrica">métrica</option>
+              <option value="mensagem_cliente">mensagem do cliente</option>
+            </select>
+          </label>
+        </div>
+        <div class="actions">
+          <button type="submit" class="btn primary">Analisar</button>
+          <label class="inline"><input type="checkbox" id="an-create-ticket" checked> Registrar como chamado</label>
+        </div>
+      </form>
+      <div id="analyze-result" class="hidden"></div>
+    </section>
+
+    <section id="page-tickets" class="page hidden">
+      <h2>Chamados</h2>
+      <div class="card"><table id="tickets-table">
+        <thead><tr><th>ID</th><th>Título</th><th>Categoria</th><th>Severidade</th><th>Equipe</th><th>Status</th><th>Criado</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+    </section>
+
+    <section id="page-knowledge" class="page hidden">
+      <h2>Base de conhecimento</h2>
+      <div class="grid-2">
+        <form id="kb-search-form" class="card">
+          <h3>Busca semântica</h3>
+          <label>Consulta <input id="kb-query" required minlength="3"></label>
+          <button class="btn primary">Buscar</button>
+          <div id="kb-results"></div>
+        </form>
+        <form id="kb-add-form" class="card">
+          <h3>Novo documento</h3>
+          <label>Título <input id="kb-title" required minlength="3"></label>
+          <label>Tipo
+            <select id="kb-type">
+              <option value="procedimento">procedimento</option>
+              <option value="chamado_resolvido">chamado resolvido</option>
+              <option value="artigo">artigo</option>
+              <option value="rca">RCA</option>
+              <option value="comando">comando</option>
+              <option value="solucao">solução</option>
+            </select>
+          </label>
+          <label>Categoria <input id="kb-category" placeholder="ex.: raid, rede, object_storage"></label>
+          <label>Conteúdo <textarea id="kb-content" rows="6" required minlength="10"></textarea></label>
+          <label class="inline"><input type="checkbox" id="kb-approved"> Aprovado</label>
+          <button class="btn primary">Ingerir</button>
+          <p id="kb-add-msg" class="ok hidden"></p>
+        </form>
+      </div>
+      <div class="card"><h3>Documentos</h3><table id="kb-table">
+        <thead><tr><th>ID</th><th>Título</th><th>Tipo</th><th>Categoria</th><th>Aprovado</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+    </section>
+
+    <section id="page-ml" class="page hidden">
+      <h2>Machine Learning</h2>
+      <div class="grid-2">
+        <div class="card">
+          <h3>Modelo ativo</h3>
+          <div id="ml-active"></div>
+          <button id="ml-train" class="btn primary">Treinar agora</button>
+          <p id="ml-train-msg" class="hidden"></p>
+        </div>
+        <div class="card"><h3>Métricas do último treino</h3><pre id="ml-metrics">—</pre></div>
+      </div>
+      <div class="card"><h3>Versões registradas</h3><table id="ml-table">
+        <thead><tr><th>ID</th><th>Nome</th><th>Status</th><th>Criado</th><th>Pronto p/ produção</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+    </section>
+  </main>
+</div>
+<script src="/static/app.js"></script>
+</body>
+</html>
