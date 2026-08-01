@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Testes
+.pytest_cache/
+.coverage
+htmlcov/
+.ruff_cache/
+.mypy_cache/
+
+# Dados e artefatos locais (nunca versionar segredos/modelos pesados)
+data/
+app/ml/artifacts/
+datasets/*.jsonl
+mlruns/
+.env
+
+# SO / IDE
+.DS_Store
+.idea/
+.vscode/
