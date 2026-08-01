@@ -187,6 +187,23 @@ curl -X POST http://localhost:8000/predict-batch \
 
 Documentacao interativa: `http://localhost:8000/docs`.
 
+### Exemplos no Windows (PowerShell)
+
+O PowerShell desmonta as aspas do JSON quando usado com `curl.exe -d`; prefira o
+comando nativo `Invoke-RestMethod`:
+
+```powershell
+Invoke-RestMethod -Uri http://localhost:8000/health
+
+Invoke-RestMethod -Uri http://localhost:8000/predict -Method Post `
+  -ContentType "application/json" `
+  -Body '{"text": "nao consigo fazer login no erp, minha senha foi bloqueada"}'
+
+Invoke-RestMethod -Uri http://localhost:8000/predict-batch -Method Post `
+  -ContentType "application/json" `
+  -Body '{"texts": ["meu notebook nao liga desde ontem", "internet do setor comercial caindo toda hora"]}'
+```
+
 ## Como executar com Docker
 
 ```bash
