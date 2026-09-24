@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentUser, audit, get_db_session, require
 from app.infrastructure.repositories import KnowledgeRepository
+from app.obsidian.sync import export_knowledge_document
 from app.schemas.api import (
     KnowledgeDocumentIn,
     KnowledgeDocumentOut,
@@ -20,6 +21,7 @@ router = APIRouter(prefix="/knowledge", tags=["knowledge"])
 @router.post("/documents", response_model=dict, status_code=201)
 def create_document(
     payload: KnowledgeDocumentIn,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db_session),
     user: CurrentUser = Depends(require("knowledge:write")),
 ) -> dict:
@@ -38,12 +40,14 @@ def create_document(
         metadata=payload.metadata,
     )
     audit(db, user, "knowledge.create", resource=str(result["id"]))
+    background_tasks.add_task(export_knowledge_document, db, result["id"])
     return result
 
 
 @router.post("/ingest", response_model=dict)
 def ingest_batch(
     payload: KnowledgeIngestRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db_session),
     user: CurrentUser = Depends(require("knowledge:write")),
 ) -> dict:
@@ -65,6 +69,8 @@ def ingest_batch(
         for doc in payload.documents
     ]
     audit(db, user, "knowledge.ingest", detail={"count": len(ids)})
+    for doc_id in ids:
+        background_tasks.add_task(export_knowledge_document, db, doc_id)
     return {"ingested": len(ids), "ids": ids}
 
 

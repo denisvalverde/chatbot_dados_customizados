@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentUser, audit, get_db_session, require
 from app.infrastructure.repositories import TicketRepository
+from app.obsidian.sync import export_ticket
 from app.schemas.api import TicketCreate, TicketListOut, TicketOut, TicketPatch
 from app.services.classification import classify_ticket
 from app.services.redaction import redact
@@ -17,6 +18,7 @@ router = APIRouter(prefix="/tickets", tags=["tickets"])
 @router.post("", response_model=TicketOut, status_code=201)
 def create_ticket(
     payload: TicketCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db_session),
     user: CurrentUser = Depends(require("tickets:write")),
 ) -> TicketOut:
@@ -47,6 +49,7 @@ def create_ticket(
             ticket.id, evidence.type.value, redact(evidence.content).text, evidence.source
         )
     audit(db, user, "ticket.create", resource=str(ticket.id))
+    background_tasks.add_task(export_ticket, db, ticket.id)
     return TicketOut.model_validate(ticket)
 
 
@@ -114,6 +117,7 @@ def get_ticket(
 def patch_ticket(
     ticket_id: int,
     payload: TicketPatch,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db_session),
     user: CurrentUser = Depends(require("tickets:write")),
 ) -> TicketOut:
@@ -124,4 +128,5 @@ def patch_ticket(
     }
     ticket = TicketRepository(db).update(ticket_id, data)
     audit(db, user, "ticket.update", resource=str(ticket_id), detail=data)
+    background_tasks.add_task(export_ticket, db, ticket.id)
     return TicketOut.model_validate(ticket)

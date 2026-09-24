@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends
 from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentUser, audit, get_db_session, require
@@ -12,6 +12,7 @@ from app.core.config import get_settings
 from app.core.exceptions import ModelNotReadyError, NotFoundError
 from app.infrastructure.repositories import ModelVersionRepository
 from app.ml.infer import get_neural_predictor, reset_neural_predictor
+from app.obsidian.sync import export_model_version
 from app.schemas.api import ModelVersionOut, TrainRequest
 
 router = APIRouter(prefix="/models", tags=["models"])
@@ -29,6 +30,7 @@ def list_models(
 @router.post("/train", response_model=dict)
 def train(
     payload: TrainRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db_session),
     user: CurrentUser = Depends(require("models:manage")),
 ) -> dict:
@@ -66,6 +68,7 @@ def train(
     )
     reset_neural_predictor()
     audit(db, user, "models.train", resource=str(version.id))
+    background_tasks.add_task(export_model_version, db, version.id)
     return {
         "model_version_id": version.id,
         "checkpoint": result["checkpoint"],
@@ -122,3 +125,16 @@ def active_model(
         "apenas_sintetico": predictor.is_synthetic_only,
         "embedder": predictor.embedder_name,
     }
+
+
+@router.post("/{model_version_id}/visualize", response_model=dict)
+def visualize(
+    model_version_id: int,
+    db: Session = Depends(get_db_session),
+    user: CurrentUser = Depends(require("obsidian:manage")),
+) -> dict:
+    """Regenera a nota + o .canvas da arquitetura da rede para esta versao no Obsidian."""
+    ModelVersionRepository(db).get(model_version_id)  # valida existencia (404 se nao existir)
+    ok = export_model_version(db, model_version_id)
+    audit(db, user, "obsidian.visualize", resource=str(model_version_id))
+    return {"gerado": ok}

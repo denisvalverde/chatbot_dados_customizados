@@ -32,11 +32,16 @@ MLOps.
 - **UI**: SPA leve (HTML/CSS/JS puro, sem build step) servida pelo próprio FastAPI,
   consumindo exclusivamente a API real — dashboard, nova análise, chamados, base de
   conhecimento, ML.
+- **Integração com Obsidian ("cérebro" de conhecimento)**: exporta chamados, análises,
+  documentos e a arquitetura da rede neural como um vault de notas Markdown interligadas
+  por wikilinks, navegável pelo Graph View nativo do Obsidian; a arquitetura da rede é
+  visualizada como diagrama Mermaid e como arquivo `.canvas`, gerados por introspecção
+  real do modelo treinado.
 - **Segurança**: JWT + RBAC (admin/analyst/viewer), rate limiting, redaction automática
   de segredos/PII, auditoria, proteção contra prompt injection no RAG.
 - **Observabilidade**: logs JSON estruturados com request-id/correlation-id, métricas
   Prometheus (`/metrics`), `/health` e `/ready`.
-- **Testes**: 45 testes (unit/api/ml), **87% de cobertura** (meta: 80%).
+- **Testes**: 68 testes (unit/api/ml), **86% de cobertura** (meta: 80%).
 
 ## 2. Arquitetura implementada
 
@@ -129,16 +134,56 @@ sucesso da solução (10%), recência (5%) e aprovação (5%). A validação de 
 afirmações de causa raiz/resolução/estabilidade sem documento de suporte, reduzindo a
 confiança reportada.
 
-## 6. APIs criadas
+## 6. Integração com Obsidian ("cérebro" de conhecimento)
 
-Todos os 21 endpoints da especificação (seção 8), incluindo `/health`, `/ready`,
-`/metrics`. Ver `docs/api-examples.http` para exemplos prontos de cada um.
+Módulo `app/obsidian/` (desacoplado do core — se `OBSIDIAN_VAULT_PATH` não estiver
+configurado, todo o módulo vira um no-op silencioso e a API funciona normalmente):
 
-## 7. Testes executados
+- **Notas interligadas**: cada `Ticket`, `Analysis` e `KnowledgeDocument` vira uma nota
+  Markdown com frontmatter YAML e wikilinks (`[[Categoria]]`, `[[Tecnologia]]`,
+  `[[Chamado-N]]`, `[[Analise-N]]`) — são esses links que fazem o **Graph View** nativo
+  do Obsidian mostrar a teia de conexões entre chamados, categorias, tecnologias e
+  procedimentos como um mapa navegável.
+- **Notas-hub** por categoria (`04-Categorias/raid.md`) e por tecnologia
+  (`05-Tecnologias/megaraid.md`), agregando tudo que já foi exportado.
+- **Visualização da rede neural real**: `06-Machine-Learning/Arquitetura-Rede-Neural.md`
+  traz um diagrama **Mermaid** (renderizado nativamente pelo Obsidian) gerado por
+  **introspecção do checkpoint treinado** — número real de neurônios por camada, cada
+  cabeça de saída e o total de parâmetros treináveis, nunca hardcoded. O arquivo
+  `.canvas` correspondente traz a mesma arquitetura como blocos navegáveis (zoom, mover)
+  no Canvas nativo do Obsidian.
+- **Hooks automáticos**: criar/atualizar um chamado, rodar uma análise, ingerir um
+  documento ou treinar um modelo dispara a exportação em `BackgroundTasks` — não atrasa
+  a resposta HTTP e nunca derruba a requisição em caso de falha de disco.
+- **Idempotente**: sincronizar de novo não duplica nem corrompe notas.
+
+Endpoints: `POST /api/v1/obsidian/sync` (resync completo), `GET /api/v1/obsidian/status`,
+`POST /api/v1/models/{id}/visualize` (regera a visualização da arquitetura sob demanda).
+
+### Como usar
+
+```bash
+# 1. Configure no .env:
+OBSIDIAN_VAULT_PATH=/caminho/para/meu-vault
+
+# 2. Sincronize (após já ter tickets/análises/documentos/modelos):
+curl -X POST http://localhost:8000/api/v1/obsidian/sync -H "Authorization: Bearer $TOKEN"
+
+# 3. Abra a pasta configurada como vault no Obsidian (gratuito, obsidian.md) e ative
+#    o Graph View (ícone de grafo na barra lateral) para ver o "cérebro" navegável.
+```
+
+## 7. APIs criadas
+
+Todos os 21 endpoints da especificação (seção 8) + os 3 novos endpoints de Obsidian
+(seção 6), incluindo `/health`, `/ready`, `/metrics`. Ver `docs/api-examples.http`
+para exemplos prontos de cada um.
+
+## 8. Testes executados
 
 ```
-python -m pytest tests/ -v     → 45 passed
-python -m coverage report      → 87% (meta: 80%)
+python -m pytest tests/ -v     → 68 passed
+python -m coverage report      → 86% (meta: 80%)
 python -m ruff check app scripts tests → All checks passed
 ```
 
@@ -148,10 +193,12 @@ catálogo de comandos (nenhum destrutivo é gerado), templates de comunicação 
 público, embeddings/similaridade, RAG (ingestão + busca + redaction), providers LLM
 (incluindo a trava do `MockProvider` fora de `ENVIRONMENT=test`), rede neural (forward,
 shapes, treino mínimo real, inferência), dataset (validação Pydantic, marcação
-sintética), e API completa (auth, RBAC 403, CRUD de tickets, análise, conhecimento,
-feedback, modelos).
+sintética), API completa (auth, RBAC 403, CRUD de tickets, análise, conhecimento,
+feedback, modelos), e integração com Obsidian (sanitização de nomes, templates,
+idempotência, Mermaid/Canvas por introspecção real, resync completo, hook automático
+validado via API real).
 
-## 8. Como executar
+## 9. Como executar
 
 ### Localmente (sem Docker)
 
@@ -181,7 +228,7 @@ make lint     # ruff check
 make format   # ruff check --fix
 ```
 
-## 9. Como treinar o modelo
+## 10. Como treinar o modelo
 
 ```bash
 make train
@@ -195,7 +242,7 @@ salvo em `app/ml/artifacts/multihead_best.pt`, o ONNX em `multihead.onnx`, e uma
 é registrada em `GET /api/v1/models`. Para promover uma versão: `POST
 /api/v1/models/deploy?model_version_id=<id>`.
 
-## 10. Como importar a base histórica (dados reais)
+## 11. Como importar a base histórica (dados reais)
 
 ```bash
 # CSV com colunas: texto,categoria[,subcategoria,severidade,equipe,risco,tecnologias]
@@ -211,7 +258,7 @@ python scripts/train_nn.py --dataset datasets/tickets_real.jsonl --epochs 30
 Para a base de conhecimento (RAG), use `POST /api/v1/knowledge/ingest` com um lote de
 documentos, ou `POST /api/v1/knowledge/documents` individualmente.
 
-## 11. Como configurar um LLM externo (opcional)
+## 12. Como configurar um LLM externo (opcional)
 
 Por padrão `LLM_PROVIDER=local` — a plataforma monta respostas estruturadas a partir do
 contexto recuperado, sem inventar fatos, sem custo e sem rede externa.
@@ -234,7 +281,7 @@ EMBEDDING_PROVIDER=sentence-transformers
 # requer: pip install sentence-transformers
 ```
 
-## 12. Limitações reais
+## 13. Limitações reais
 
 - **Modelo neural**: treinado apenas com dados **sintéticos** neste repositório
   (`origem: sintetico`); a API sinaliza isso explicitamente (`is_production_ready:
@@ -259,8 +306,12 @@ EMBEDDING_PROVIDER=sentence-transformers
   + métricas Prometheus) está pronta para alimentá-los.
 - **MyPy**: não incluído na validação automatizada desta entrega (Ruff cobre lint);
   o código usa type hints extensivamente mas não foi validado com checagem estrita.
+- **Obsidian**: sincronização é apenas plataforma → vault (não há sincronização
+  bidirecional; edições feitas manualmente no vault fora das notas geradas não são lidas
+  de volta pela plataforma). Notas-hub de tecnologia fazem varredura completa da tabela
+  de análises a cada atualização — adequado até alguns milhares de registros.
 
-## 13. Próximos passos
+## 14. Próximos passos
 
 1. Treinar com dados reais (`scripts/import_dataset.py`) e promover o modelo via
    `/models/deploy` quando `is_production_ready: true`.
@@ -274,3 +325,7 @@ EMBEDDING_PROVIDER=sentence-transformers
 7. Expandir RBAC com grupos/permissões granulares por categoria/equipe.
 8. Integrar Next.js/shadcn como frontend completo, caso a SPA leve atual seja
    insuficiente para o volume de usuários (a API já está pronta para qualquer cliente).
+9. Diagrama Mermaid de raciocínio por análise (evidências → hipóteses → conclusão)
+   dentro da própria nota de Análise no Obsidian.
+10. Sincronização incremental mais eficiente para as notas-hub de tecnologia em bases
+    muito grandes (hoje faz varredura completa a cada atualização).

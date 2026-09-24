@@ -195,3 +195,37 @@ class TestKnowledgeAndFeedback:
         assert client.get("/api/v1/models", headers=admin_headers).status_code == 200
         active = client.get("/api/v1/models/active", headers=admin_headers).json()
         assert "neural" in active
+
+
+class TestObsidian:
+    def test_status_habilitado(self, client: TestClient, admin_headers: dict) -> None:
+        status = client.get("/api/v1/obsidian/status", headers=admin_headers).json()
+        assert status["habilitado"] is True
+        assert status["caminho_vault"]
+
+    def test_viewer_sem_permissao(self, client: TestClient, viewer_headers: dict) -> None:
+        assert client.get("/api/v1/obsidian/status", headers=viewer_headers).status_code == 403
+        assert client.post("/api/v1/obsidian/sync", headers=viewer_headers).status_code == 403
+
+    def test_sync_retorna_contagens(self, client: TestClient, admin_headers: dict) -> None:
+        body = client.post("/api/v1/obsidian/sync", headers=admin_headers).json()
+        assert set(body["sincronizado"]) == {"tickets", "analises", "documentos", "modelos"}
+
+    def test_criar_ticket_gera_nota_no_vault(
+        self, client: TestClient, admin_headers: dict
+    ) -> None:
+        import glob
+
+        from app.obsidian.vault import vault_root
+
+        ticket = client.post(
+            "/api/v1/tickets", headers=admin_headers,
+            json={
+                "title": "Chamado para validar hook do Obsidian",
+                "description": "vlan 200 sem comunicacao apos manutencao no switch",
+            },
+        ).json()
+        root = vault_root()
+        assert root is not None
+        matches = glob.glob(str(root / "01-Chamados" / f"Chamado-{ticket['id']}-*.md"))
+        assert matches, "hook de sincronizacao nao gerou a nota do chamado"

@@ -74,6 +74,11 @@ class Settings(BaseSettings):
     # Redis/fila (opcional; a aplicacao funciona sem)
     redis_url: str = ""
 
+    # Obsidian ("cerebro" de conhecimento) — vazio = integracao desativada,
+    # sem nenhum impacto no resto da aplicacao.
+    obsidian_vault_path: str = ""
+    obsidian_auto_sync: bool = True
+
     @property
     def is_production(self) -> bool:
         return self.environment == "production"

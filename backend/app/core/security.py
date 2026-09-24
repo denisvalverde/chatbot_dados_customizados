@@ -20,11 +20,11 @@ ROLE_PERMISSIONS: dict[str, set[str]] = {
     "admin": {
         "tickets:read", "tickets:write", "analysis:run", "knowledge:read",
         "knowledge:write", "feedback:write", "models:read", "models:manage",
-        "users:manage", "audit:read",
+        "users:manage", "audit:read", "obsidian:manage",
     },
     "analyst": {
         "tickets:read", "tickets:write", "analysis:run", "knowledge:read",
-        "knowledge:write", "feedback:write", "models:read",
+        "knowledge:write", "feedback:write", "models:read", "obsidian:manage",
     },
     "viewer": {"tickets:read", "knowledge:read", "models:read"},
 }

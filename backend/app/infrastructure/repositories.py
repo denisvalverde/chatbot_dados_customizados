@@ -223,6 +223,12 @@ class ModelVersionRepository:
         self.db.refresh(model)
         return model
 
+    def get(self, model_version_id: int) -> ModelVersion:
+        model = self.db.get(ModelVersion, model_version_id)
+        if model is None:
+            raise NotFoundError(f"Versao de modelo {model_version_id} nao encontrada.")
+        return model
+
     def list(self) -> Sequence[ModelVersion]:
         return self.db.scalars(
             select(ModelVersion).order_by(ModelVersion.created_at.desc())

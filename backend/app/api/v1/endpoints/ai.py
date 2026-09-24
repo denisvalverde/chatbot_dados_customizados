@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends
 from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentUser, audit, get_db_session, require
 from app.domain.enums import MessageKind
 from app.infrastructure.repositories import AnalysisRepository, TicketRepository
+from app.obsidian.sync import export_analysis
 from app.schemas.api import (
     AnalyzeRequest,
     ClassifyRequest,
@@ -47,6 +48,7 @@ def extract(
 @router.post("/analyze", response_model=dict)
 def run_analysis(
     payload: AnalyzeRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db_session),
     user: CurrentUser = Depends(require("analysis:run")),
 ) -> dict:
@@ -83,6 +85,7 @@ def run_analysis(
         }
     )
     audit(db, user, "analysis.run", resource=str(record.id))
+    background_tasks.add_task(export_analysis, db, record.id)
     return {"analysis_id": record.id, "classificacao": classification, **result}
 
 

@@ -14,6 +14,7 @@ _tmpdir = tempfile.mkdtemp(prefix="platform-test-")
 os.environ.setdefault("DATABASE_URL", f"sqlite:///{_tmpdir}/test.db")
 os.environ.setdefault("ML_ARTIFACTS_DIR", f"{_tmpdir}/artifacts")
 os.environ.setdefault("ML_DATASET_PATH", f"{_tmpdir}/dataset.jsonl")
+os.environ.setdefault("OBSIDIAN_VAULT_PATH", f"{_tmpdir}/obsidian-vault")
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
