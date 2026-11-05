@@ -314,7 +314,7 @@ def render_hub_note(
         ticket_links=[wikilink(f"Chamado-{tid}") for tid, _ in ticket_titles],
         knowledge_links=[wikilink(f"Documento-{did}") for did, _ in knowledge_titles],
     )
-    return f"{folder}/{name}.md", content
+    return f"{folder}/{slugify(name)}.md", content
 
 
 def render_model_version_note(version: dict[str, Any]) -> tuple[str, str]:
