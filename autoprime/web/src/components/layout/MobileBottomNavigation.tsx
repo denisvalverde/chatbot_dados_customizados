@@ -31,7 +31,7 @@ export function MobileBottomNavigation({
       : navItemsForRole(role)
           .filter((i) => !STAFF_EXCLUDE.has(i.href))
           .slice(0, 3)
-          .map((i) => ({ href: i.href, label: i.label === 'Dashboard' ? 'Início' : i.label, icon: i.icon }));
+          .map((i) => ({ href: i.href, label: i.label === 'Dashboard' ? 'Início' : i.label === 'Radar de Receita' ? 'Radar' : i.label, icon: i.icon }));
 
   return (
     <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-black/5 dark:border-white/10 bg-white/90 dark:bg-graphite-900/90 backdrop-blur-xl pb-safe">

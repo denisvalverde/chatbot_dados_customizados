@@ -19,6 +19,7 @@ const SLOT_STEP_MINUTES = 30;
 export class AiService {
   private readonly logger = new Logger(AiService.name);
   private readonly anthropic: Anthropic | null;
+  private readonly model: string;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -26,6 +27,7 @@ export class AiService {
   ) {
     const apiKey = this.config.get<string>('ai.anthropicApiKey');
     this.anthropic = apiKey ? new Anthropic({ apiKey }) : null;
+    this.model = this.config.get<string>('ai.model') ?? 'claude-sonnet-5-5';
   }
 
   /**
@@ -146,7 +148,7 @@ export class AiService {
       try {
         const prompt = this.buildPrompt(dto);
         const response = await this.anthropic.messages.create({
-          model: 'claude-sonnet-4-5',
+          model: this.model,
           max_tokens: 300,
           messages: [{ role: 'user', content: prompt }],
         });
@@ -162,6 +164,52 @@ export class AiService {
     }
 
     return { message: this.templateMessage(dto), generatedBy: 'template' };
+  }
+
+  /**
+   * Reescreve uma mensagem do Radar de Receita para soar humana, usando APENAS
+   * os fatos fornecidos. Regras duras no prompt: não inventar desconto, preço,
+   * brinde nem horário; manter o horário oferecido exatamente como está. Sem
+   * ANTHROPIC_API_KEY (ou em falha), devolve o rascunho determinístico.
+   */
+  async personalizeOutreach(input: {
+    companyName: string;
+    clientName: string;
+    draft: string;
+    facts: string[];
+  }): Promise<{ message: string; generatedBy: 'claude' | 'template' }> {
+    if (!this.anthropic) return { message: input.draft, generatedBy: 'template' };
+    try {
+      const response = await this.anthropic.messages.create({
+        model: this.model,
+        max_tokens: 400,
+        system:
+          `Você escreve mensagens de WhatsApp para ${input.companyName}, um lava-rápido / estética automotiva no Brasil. ` +
+          'Português do Brasil, tom caloroso e direto, como um atendente que conhece o cliente. ' +
+          'Máximo 3 frases curtas, no máximo 1 emoji. ' +
+          'REGRAS: use somente os fatos fornecidos; NÃO invente descontos, preços, brindes, prazos ou horários; ' +
+          'se o rascunho oferece um horário, mantenha-o exatamente igual; termine com uma pergunta simples de sim/não. ' +
+          'Responda apenas com o texto final da mensagem.',
+        messages: [
+          {
+            role: 'user',
+            content:
+              `Cliente: ${input.clientName}\n` +
+              `Fatos:\n${input.facts.map((f) => `- ${f}`).join('\n') || '- (nenhum fato extra)'}\n\n` +
+              `Rascunho:\n${input.draft}`,
+          },
+        ],
+      });
+      const text = response.content.find((b) => b.type === 'text');
+      if (text && text.type === 'text' && text.text.trim()) {
+        return { message: text.text.trim(), generatedBy: 'claude' };
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Falha ao personalizar com IA, usando rascunho. Motivo: ${(error as Error).message}`,
+      );
+    }
+    return { message: input.draft, generatedBy: 'template' };
   }
 
   private buildPrompt(dto: GenerateMessageDto): string {

@@ -21,6 +21,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { PaymentsModule } from './payments/payments.module';
 import { AiModule } from './ai/ai.module';
 import { CompanyModule } from './company/company.module';
+import { RevenueRadarModule } from './revenue-radar/revenue-radar.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { CompanyModule } from './company/company.module';
     NotificationsModule,
     PaymentsModule,
     AiModule,
+    RevenueRadarModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

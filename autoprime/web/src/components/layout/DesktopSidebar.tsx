@@ -14,6 +14,7 @@ export interface NavItem {
 
 export const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: '📊', roles: ['ADMIN', 'MANAGER', 'FINANCE'] },
+  { href: '/radar', label: 'Radar de Receita', icon: '💸', roles: ['ADMIN', 'MANAGER', 'EMPLOYEE'] },
   {
     href: '/scheduling',
     label: 'Agenda',
