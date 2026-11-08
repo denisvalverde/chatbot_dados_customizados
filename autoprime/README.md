@@ -13,6 +13,36 @@ autoprime/
 └── docs/      # Manuais de uso e administração
 ```
 
+## 💸 Radar de Receita — o AutoPrime se paga sozinho
+
+Abra `/radar` no painel. O Radar lê o histórico real da empresa e mostra, em R$, o
+dinheiro parado na base de clientes, com a mensagem e um horário livre da agenda já
+prontos para enviar no WhatsApp (link `wa.me`, sem precisar de API paga):
+
+| Oportunidade | Quando aparece |
+|---|---|
+| ⏰ Faltou e não remarcou | Falta/cancelamento nos últimos 30 dias, sem novo horário |
+| 👋 Sumiu | Passou de 1,5× o **próprio** ritmo de visitas (chance cai com o tempo) |
+| 🎯 No ponto de voltar | Chegou a 85% do próprio ritmo |
+| ✨ Upsell | Serviço que clientes com o mesmo histórico compram e este ainda não |
+
+- **Horários reais:** cada horário livre dos próximos 7 dias é oferecido a uma única
+  pessoa, começando pela oportunidade mais valiosa. A tela também mostra a agenda
+  ociosa convertida em R$.
+- **Prova do resultado:** cada envio fica registrado (`Outreach`). Agendamento criado
+  até 14 dias depois de um contato conta como **receita recuperada**: é o número que
+  justifica a mensalidade para o dono do lava-rápido.
+- **Respeito ao cliente:** quem já tem horário marcado nunca aparece; quem foi
+  contatado nos últimos 7 dias fica marcado para ninguém insistir.
+- **IA opcional:** "Personalizar com IA" reescreve a mensagem com Claude usando só
+  fatos reais (sem inventar desconto, preço ou horário). Sem `ANTHROPIC_API_KEY`,
+  usa o rascunho determinístico.
+
+O motor é puro e determinístico (`backend/src/revenue-radar/radar.engine.ts`), com
+testes unitários do motor e E2E contra Postgres (fluxo completo + isolamento entre
+empresas). O seed de desenvolvimento cria 15 clientes com histórico realista para
+demonstração.
+
 ## Escopo desta entrega — o que é real e o que é roadmap
 
 Este projeto foi construído para ser **funcional de ponta a ponta**, não uma maquete.

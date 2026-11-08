@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Skeleton, SkeletonCard } from '@/components/ui/Skeleton';
 import { AppointmentCard } from '@/components/ui/AppointmentCard';
+import { brl, RadarScan } from '@/lib/radar';
 
 interface TopService {
   name: string;
@@ -119,6 +120,41 @@ function ShortcutRow({ items }: { items: { href: string; label: string; icon: st
   );
 }
 
+/** Alerta de dinheiro parado — leva direto ao Radar de Receita. */
+function RadarTeaser() {
+  const [summary, setSummary] = useState<RadarScan['summary'] | null>(null);
+
+  useEffect(() => {
+    api
+      .get<RadarScan>('/revenue-radar')
+      .then((r) => setSummary(r.summary))
+      .catch(() => undefined);
+  }, []);
+
+  if (!summary || summary.opportunities === 0) return null;
+
+  return (
+    <Link href="/radar" className="block mb-5 group">
+      <div className="flex items-center gap-4 rounded-2xl p-4 sm:p-5 text-white bg-gradient-to-r from-primary-600 to-primary-500 shadow-lg shadow-primary-500/20">
+        <span className="text-3xl" aria-hidden>
+          💸
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-lg sm:text-xl font-semibold leading-tight">
+            {brl(summary.potentialRevenue)} na mesa hoje
+          </p>
+          <p className="text-sm text-white/80">
+            {summary.opportunities} clientes prontos para voltar — mensagens e horários já preparados.
+          </p>
+        </div>
+        <span className="hidden sm:inline text-sm font-medium group-hover:translate-x-0.5 transition-transform">
+          Abrir Radar →
+        </span>
+      </div>
+    </Link>
+  );
+}
+
 function ManagementDashboard() {
   const { from, to } = useRange();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
@@ -158,6 +194,8 @@ function ManagementDashboard() {
       <PageHeader title="Dashboard" description={`Período: ${from} até ${to.slice(0, 10)}`} />
 
       {error && <p className="text-sm text-danger mb-4">{error}</p>}
+
+      <RadarTeaser />
 
       <div className="mb-5">
         <ShortcutRow
