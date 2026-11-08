@@ -1,5 +1,6 @@
 import { PrismaClient, Role, FuelType } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { seedRadarDemo } from './seed-radar-demo';
 
 const prisma = new PrismaClient();
 
@@ -230,6 +231,9 @@ async function main() {
       km: 32000,
     },
   });
+
+  // Histórico realista para o Radar de Receita (clientes com ritmo de visitas).
+  await seedRadarDemo(prisma, company.id, clientPassword);
 
   console.log('Seed concluído.');
   console.log(`Empresa: ${company.name} (slug: ${company.slug})`);
