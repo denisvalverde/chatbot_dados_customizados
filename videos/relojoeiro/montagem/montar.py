@@ -43,6 +43,8 @@ def achar_clipe(pasta: Path, n: int):
         p for p in pasta.glob(base + "*")
         if (p.stem == base or p.stem.startswith(base + "_")) and p.suffix.lower() in VIDEO_EXT | IMAGE_EXT
     )
+    # prefere vídeo a imagem; entre vídeos, ordem alfabética (p07.mp4 antes de p07_tomada2.mp4)
+    candidatos.sort(key=lambda p: (p.suffix.lower() in IMAGE_EXT, p.stem != base, p.name))
     return candidatos[0] if candidatos else None
 
 
