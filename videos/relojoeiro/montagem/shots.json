@@ -1,0 +1,173 @@
+{
+ "titulo": "O Relojoeiro",
+ "largura": 1080,
+ "altura": 1920,
+ "fps": 30,
+ "musica": {
+  "volume": 0.55,
+  "fade_in": 1.5,
+  "fade_out": 3.0,
+  "abaixar_planos": [
+   23,
+   26
+  ],
+  "ganho_abaixado": 0.25
+ },
+ "legenda": {
+  "fonte": "DejaVu Sans",
+  "tamanho": 64,
+  "margem_inferior": 330
+ },
+ "planos": [
+  {
+   "id": 1,
+   "dur": 4,
+   "caption": "E se você pudesse dar um minuto da vida?"
+  },
+  {
+   "id": 2,
+   "dur": 3,
+   "caption": ""
+  },
+  {
+   "id": 3,
+   "dur": 3,
+   "caption": "Você daria?"
+  },
+  {
+   "id": 4,
+   "dur": 4,
+   "caption": "Um minuto por dia."
+  },
+  {
+   "id": 5,
+   "dur": 3,
+   "caption": "Só dá pra dar."
+  },
+  {
+   "id": 6,
+   "dur": 3,
+   "caption": "Nunca pegar de volta."
+  },
+  {
+   "id": 7,
+   "dur": 3,
+   "caption": ""
+  },
+  {
+   "id": 8,
+   "dur": 3,
+   "caption": ""
+  },
+  {
+   "id": 9,
+   "dur": 3,
+   "caption": ""
+  },
+  {
+   "id": 10,
+   "dur": 3,
+   "caption": ""
+  },
+  {
+   "id": 11,
+   "dur": 3,
+   "caption": ""
+  },
+  {
+   "id": 12,
+   "dur": 3,
+   "caption": ""
+  },
+  {
+   "id": 13,
+   "dur": 3,
+   "caption": ""
+  },
+  {
+   "id": 14,
+   "dur": 4,
+   "caption": ""
+  },
+  {
+   "id": 15,
+   "dur": 3,
+   "caption": ""
+  },
+  {
+   "id": 16,
+   "dur": 3,
+   "caption": ""
+  },
+  {
+   "id": 17,
+   "dur": 4,
+   "caption": ""
+  },
+  {
+   "id": 18,
+   "dur": 3,
+   "caption": ""
+  },
+  {
+   "id": 19,
+   "dur": 3,
+   "caption": ""
+  },
+  {
+   "id": 20,
+   "dur": 3,
+   "caption": ""
+  },
+  {
+   "id": 21,
+   "dur": 3,
+   "caption": ""
+  },
+  {
+   "id": 22,
+   "dur": 4,
+   "caption": ""
+  },
+  {
+   "id": 23,
+   "dur": 4,
+   "caption": "Cada minuto era seu."
+  },
+  {
+   "id": 24,
+   "dur": 4,
+   "caption": "Eu sempre soube."
+  },
+  {
+   "id": 25,
+   "dur": 4,
+   "caption": "E deu mesmo assim?"
+  },
+  {
+   "id": 26,
+   "dur": 3,
+   "caption": "Ninguém gasta o tempo melhor."
+  },
+  {
+   "id": 27,
+   "dur": 4,
+   "caption": ""
+  },
+  {
+   "id": 28,
+   "dur": 4,
+   "caption": ""
+  },
+  {
+   "id": 29,
+   "dur": 4,
+   "caption": "O tempo que a gente dá é o único que a gente guarda."
+  },
+  {
+   "id": 30,
+   "dur": 4,
+   "caption": "Você daria?"
+  }
+ ]
+}

@@ -1,0 +1,6 @@
+clips/*
+!clips/.gitkeep
+audio/*
+!audio/.gitkeep
+saida_*.mp4
+__pycache__/
