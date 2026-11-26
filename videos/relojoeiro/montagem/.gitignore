@@ -4,3 +4,4 @@ audio/*
 !audio/.gitkeep
 saida_*.mp4
 __pycache__/
+bloco*.mp4
