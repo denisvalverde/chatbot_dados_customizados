@@ -50,12 +50,14 @@
   {
    "id": 6,
    "dur": 3,
-   "caption": "Nunca pegar de volta."
+   "caption": "Nunca pegar de volta.",
+   "ss": 3.0
   },
   {
    "id": 7,
    "dur": 3,
-   "caption": ""
+   "caption": "",
+   "ss": 2.2
   },
   {
    "id": 8,
